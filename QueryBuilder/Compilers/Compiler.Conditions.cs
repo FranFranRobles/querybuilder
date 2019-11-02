@@ -40,7 +40,12 @@ namespace SqlKata.Compilers
             }
 
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="conditions"></param>
+        /// <returns></returns>
         protected virtual string CompileConditions(SqlResult ctx, List<AbstractCondition> conditions)
         {
             var result = new List<string>();

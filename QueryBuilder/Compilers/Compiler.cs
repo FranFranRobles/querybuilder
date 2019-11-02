@@ -40,10 +40,14 @@ namespace SqlKata.Compilers
             "similar to", "not similar to"
         };
 
-        protected HashSet<string> userOperators = new HashSet<string>
-        {
+        /// <summary>
+        /// user defined white listed operators to be used with Where/Have Methods.
+        /// This will will prevent passing arbitrary operators that could be used for a SQL injection
 
-        };
+        /// </summary>
+        protected HashSet<string> userOperators = new HashSet<string> { }; // why not ()?
+
+        //methods Begin
 
         protected Dictionary<string, object> generateNamedBindings(object[] bindings)
         {
@@ -89,22 +93,26 @@ namespace SqlKata.Compilers
                 .AddComponent("aggregate", outerClause)
                 .From(query, $"{clause.Type}Query");
         }
-
+        /// <summary>
+        /// Compiles the Query into A sqlresult that is an insert, update, delete, aggeregate statement
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         protected virtual SqlResult CompileRaw(Query query)
         {
-            SqlResult ctx;
+            SqlResult sqlResult;
 
             if (query.Method == "insert")
             {
-                ctx = CompileInsertQuery(query);
+                sqlResult = CompileInsertQuery(query);
             }
             else if (query.Method == "update")
             {
-                ctx = CompileUpdateQuery(query);
+                sqlResult = CompileUpdateQuery(query);
             }
             else if (query.Method == "delete")
             {
-                ctx = CompileDeleteQuery(query);
+                sqlResult = CompileDeleteQuery(query);
             }
             else
             {
@@ -117,26 +125,26 @@ namespace SqlKata.Compilers
                     query = TransformAggregateQuery(query);
                 }
 
-                ctx = CompileSelectQuery(query);
+                sqlResult = CompileSelectQuery(query);
             }
 
             // handle CTEs
             if (query.HasComponent("cte", EngineCode))
             {
-                ctx = CompileCteQuery(ctx, query);
+                sqlResult = CompileCteQuery(sqlResult, query);
             }
 
-            ctx.RawSql = Helper.ExpandParameters(ctx.RawSql, "?", ctx.Bindings.ToArray());
+            sqlResult.RawSql = Helper.ExpandParameters(sqlResult.RawSql, "?", sqlResult.Bindings.ToArray());
 
-            return ctx;
+            return sqlResult;
         }
 
         /// <summary>
         /// Add the passed operator(s) to the white list so they can be used with
-        /// the Where/Having methods, this prevent passing arbitrary operators
+        /// the Where/Having methods, this prevents passing arbitrary operators
         /// that opens the door for SQL injections.
         /// </summary>
-        /// <param name="operators"></param>
+        /// <param name="operators"> operators to be white listed</param>
         /// <returns></returns>
         public Compiler Whitelist(params string[] operators)
         {
@@ -145,16 +153,20 @@ namespace SqlKata.Compilers
                 this.userOperators.Add(op);
             }
 
-            return this;
+            return this;  
         }
-
+        /// <summary>
+        /// Compiles the query into a SQL Result
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public virtual SqlResult Compile(Query query)
         {
-            var ctx = CompileRaw(query);
+            SqlResult sqlResult = CompileRaw(query);
 
-            ctx = PrepareResult(ctx);
+            sqlResult = PrepareResult(sqlResult);
 
-            return ctx;
+            return sqlResult;
         }
 
         public virtual SqlResult Compile(IEnumerable<Query> queries)
@@ -182,21 +194,21 @@ namespace SqlKata.Compilers
 
         protected virtual SqlResult CompileSelectQuery(Query query)
         {
-            var ctx = new SqlResult
+            SqlResult context = new SqlResult
             {
                 Query = query.Clone(),
             };
 
-            var results = new[] {
-                    this.CompileColumns(ctx),
-                    this.CompileFrom(ctx),
-                    this.CompileJoins(ctx),
-                    this.CompileWheres(ctx),
-                    this.CompileGroups(ctx),
-                    this.CompileHaving(ctx),
-                    this.CompileOrders(ctx),
-                    this.CompileLimit(ctx),
-                    this.CompileUnion(ctx),
+            List<string> results = new[] {
+                    this.CompileColumns(context),
+                    this.CompileFrom(context),
+                    this.CompileJoins(context),
+                    this.CompileWheres(context),
+                    this.CompileGroups(context),
+                    this.CompileHaving(context),
+                    this.CompileOrders(context),
+                    this.CompileLimit(context),
+                    this.CompileUnion(context),
                 }
                .Where(x => x != null)
                .Where(x => !string.IsNullOrEmpty(x))
@@ -204,28 +216,32 @@ namespace SqlKata.Compilers
 
             string sql = string.Join(" ", results);
 
-            ctx.RawSql = sql;
+            context.RawSql = sql;
 
-            return ctx;
+            return context;
         }
-
+        /// <summary>
+        /// Creates a new SQL Result object and sets the SqlResult query property
+        /// </summary>
+        /// <param name="query">query to intialize SQL Result obj with</param>
+        /// <param name="errorMsg">Msg of which operation failed</param>
+        /// <returns></returns>
         private SqlResult IntializeSQL_Result(Query query, string errorMsg)
         {
-            var ctx = new SqlResult
+            if(!query.HasComponent("from", EngineCode))
+            {
+                throw new InvalidOperationException("No table set to " + errorMsg);
+            }
+            SqlResult sqlResult = new SqlResult
             {
                 Query = query
             };
 
-            if (!ctx.Query.HasComponent("from", EngineCode))
-            {
-                throw new InvalidOperationException("No table set to " + errorMsg);
-            }
-
-            return ctx;
+            return sqlResult;
         }
-        private string MakeTable(SqlResult ctx)
+        private string MakeTable(SqlResult context)
         {
-            var fromClause = ctx.Query.GetOneComponent<AbstractFrom>("from", EngineCode);
+            AbstractFrom fromClause = context.Query.GetOneComponent<AbstractFrom>("from", EngineCode);
 
             // this is only found on only one method. that is the CompileInsertQuery
             // added it and still passes all unit tests
@@ -243,7 +259,7 @@ namespace SqlKata.Compilers
             else if (fromClause is RawFromClause rawFromClause) // made into else  since table gets over written
             {
                 table = WrapIdentifiers(rawFromClause.Expression);
-                ctx.Bindings.AddRange(rawFromClause.Bindings);
+                context.Bindings.AddRange(rawFromClause.Bindings);
             }
 
             if (table is null)
@@ -307,36 +323,53 @@ namespace SqlKata.Compilers
             return ctx;
         }
 
-        private SqlResult IfInsertCase(SqlResult ctx, string table, InsertClause insertClause)
+        private SqlResult IfInsertCase(SqlResult context, string table, InsertClause insertClause)
         {
             var columns = string.Join(", ", WrapArray(insertClause.Columns));
-            var values = string.Join(", ", Parameterize(ctx, insertClause.Values));
+            var values = string.Join(", ", Parameterize(context, insertClause.Values));
 
-            ctx.RawSql = $"INSERT INTO {table} ({columns}) VALUES ({values})";
+            context.RawSql = $"INSERT INTO {table} ({columns}) VALUES ({values})";
 
             if (insertClause.ReturnId && !string.IsNullOrEmpty(LastId))
             {
-                ctx.RawSql += ";" + LastId;
+                context.RawSql += ";" + LastId;
             }
 
-            return ctx;
+            return context;
         }
+        private SqlResult ElseInsertCase(SqlResult context, string table, List<AbstractInsertClause> inserts)
+        {
+            InsertQueryClause clause = inserts[0] as InsertQueryClause;
 
+            string columns = "";
+
+            if (clause.Columns.Any()) // if columns have anyting inside
+            {
+                columns = $" ({string.Join(", ", WrapArray(clause.Columns))}) ";
+            }
+
+            SqlResult subContext = CompileSelectQuery(clause.Query);
+            context.Bindings.AddRange(subContext.Bindings);
+
+            context.RawSql = $"INSERT INTO {table}{columns}{subContext.RawSql}";
+
+            return context;
+        }
         protected virtual SqlResult CompileInsertQuery(Query query)
         {
-            var ctx = IntializeSQL_Result(query, " insert");
+            SqlResult sqlResult = IntializeSQL_Result(query, " insert");
 
-            string table = MakeTable(ctx);
+            string table = MakeTable(sqlResult);
 
-            var inserts = ctx.Query.GetComponents<AbstractInsertClause>("insert", EngineCode);
+            var inserts = sqlResult.Query.GetComponents<AbstractInsertClause>("insert", EngineCode);
 
             if (inserts[0] is InsertClause insertClause)
             {
-                ctx = IfInsertCase(ctx, table, insertClause);
+                sqlResult = IfInsertCase(sqlResult, table, insertClause);
             }
             else
             {
-                ElseInsertCase(ctx, table, inserts);
+                sqlResult = ElseInsertCase(sqlResult, table, inserts);
             }
 
             if (inserts.Count > 1)
@@ -345,30 +378,13 @@ namespace SqlKata.Compilers
                 {
                     var clause = insert as InsertClause;
 
-                    ctx.RawSql += ", (" + string.Join(", ", Parameterize(ctx, clause.Values)) + ")";
+                    sqlResult.RawSql += ", (" + string.Join(", ", Parameterize(sqlResult, clause.Values)) + ")";
 
                 }
             }
 
 
-            return ctx;
-        }
-
-        private void ElseInsertCase(SqlResult ctx, string table, List<AbstractInsertClause> inserts)
-        {
-            var clause = inserts[0] as InsertQueryClause;
-
-            var columns = "";
-
-            if (clause.Columns.Any())
-            {
-                columns = $" ({string.Join(", ", WrapArray(clause.Columns))}) ";
-            }
-
-            var subCtx = CompileSelectQuery(clause.Query);
-            ctx.Bindings.AddRange(subCtx.Bindings);
-
-            ctx.RawSql = $"INSERT INTO {table}{columns}{subCtx.RawSql}";
+            return sqlResult;
         }
 
         protected virtual SqlResult CompileCteQuery(SqlResult ctx, Query query)
@@ -463,14 +479,14 @@ namespace SqlKata.Compilers
             return ctx;
         }
 
-        protected virtual string CompileColumns(SqlResult ctx)
+        protected virtual string CompileColumns(SqlResult context)
         {
-            if (ctx.Query.HasComponent("aggregate", EngineCode))
+            if (context.Query.HasComponent("aggregate", EngineCode))
             {
-                var aggregate = ctx.Query.GetOneComponent<AggregateClause>("aggregate", EngineCode);
+                AggregateClause aggregate = context.Query.GetOneComponent<AggregateClause>("aggregate", EngineCode);
 
-                var aggregateColumns = aggregate.Columns
-                    .Select(x => CompileColumn(ctx, new Column { Name = x }))
+                List<string> aggregateColumns = aggregate.Columns
+                    .Select(x => CompileColumn(context, new Column { Name = x }))
                     .ToList();
 
                 string sql = string.Empty;
@@ -479,7 +495,7 @@ namespace SqlKata.Compilers
                 {
                     sql = string.Join(", ", aggregateColumns);
 
-                    if (ctx.Query.IsDistinct)
+                    if (context.Query.IsDistinct)
                     {
                         sql = "DISTINCT " + sql;
                     }
@@ -490,49 +506,49 @@ namespace SqlKata.Compilers
                 return "SELECT 1";
             }
 
-            var columns = ctx.Query
+            List<string> columns = context.Query
                 .GetComponents<AbstractColumn>("select", EngineCode)
-                .Select(x => CompileColumn(ctx, x))
+                .Select(x => CompileColumn(context, x))
                 .ToList();
 
-            var distinct = ctx.Query.IsDistinct ? "DISTINCT " : "";
+            string distinct = context.Query.IsDistinct ? "DISTINCT " : "";
 
-            var select = columns.Any() ? string.Join(", ", columns) : "*";
+            string select = columns.Any() ? string.Join(", ", columns) : "*";
 
             return $"SELECT {distinct}{select}";
 
         }
 
-        public virtual string CompileUnion(SqlResult ctx)
+        public virtual string CompileUnion(SqlResult context)
         {
 
             // Handle UNION, EXCEPT and INTERSECT
-            if (!ctx.Query.GetComponents("combine", EngineCode).Any())
+            if (!context.Query.GetComponents("combine", EngineCode).Any())
             {
                 return null;
             }
 
-            var combinedQueries = new List<string>();
+            List<string> combinedQueries = new List<string>();
 
-            var clauses = ctx.Query.GetComponents<AbstractCombine>("combine", EngineCode);
+            List<AbstractCombine> clauses = context.Query.GetComponents<AbstractCombine>("combine", EngineCode);
 
-            foreach (var clause in clauses)
+            foreach (AbstractCombine clause in clauses)
             {
                 if (clause is Combine combineClause)
                 {
-                    var combineOperator = combineClause.Operation.ToUpperInvariant() + " " + (combineClause.All ? "ALL " : "");
+                    string combineOperator = combineClause.Operation.ToUpperInvariant() + " " + (combineClause.All ? "ALL " : "");
 
-                    var subCtx = CompileSelectQuery(combineClause.Query);
+                    SqlResult subCtx = CompileSelectQuery(combineClause.Query);
 
-                    ctx.Bindings.AddRange(subCtx.Bindings);
+                    context.Bindings.AddRange(subCtx.Bindings);
 
                     combinedQueries.Add($"{combineOperator}{subCtx.RawSql}");
                 }
                 else
                 {
-                    var combineRawClause = clause as RawCombine;
+                    RawCombine combineRawClause = clause as RawCombine;
 
-                    ctx.Bindings.AddRange(combineRawClause.Bindings);
+                    context.Bindings.AddRange(combineRawClause.Bindings);
 
                     combinedQueries.Add(WrapIdentifiers(combineRawClause.Expression));
 
@@ -543,23 +559,23 @@ namespace SqlKata.Compilers
 
         }
 
-        public virtual string CompileTableExpression(SqlResult ctx, AbstractFrom from)
+        public virtual string CompileTableExpression(SqlResult context, AbstractFrom from)
         {
             if (from is RawFromClause raw)
             {
-                ctx.Bindings.AddRange(raw.Bindings);
+                context.Bindings.AddRange(raw.Bindings);
                 return WrapIdentifiers(raw.Expression);
             }
 
             if (from is QueryFromClause queryFromClause)
             {
-                var fromQuery = queryFromClause.Query;
+                Query fromQuery = queryFromClause.Query;
 
-                var alias = string.IsNullOrEmpty(fromQuery.QueryAlias) ? "" : $" {TableAsKeyword}" + WrapValue(fromQuery.QueryAlias);
+                string alias = string.IsNullOrEmpty(fromQuery.QueryAlias) ? "" : $" {TableAsKeyword}" + WrapValue(fromQuery.QueryAlias);
 
-                var subCtx = CompileSelectQuery(fromQuery);
+                SqlResult subCtx = CompileSelectQuery(fromQuery);
 
-                ctx.Bindings.AddRange(subCtx.Bindings);
+                context.Bindings.AddRange(subCtx.Bindings);
 
                 return "(" + subCtx.RawSql + ")" + alias;
             }
@@ -572,88 +588,88 @@ namespace SqlKata.Compilers
             throw InvalidClauseException("TableExpression", from);
         }
 
-        public virtual string CompileFrom(SqlResult ctx)
+        public virtual string CompileFrom(SqlResult context)
         {
-            if (!ctx.Query.HasComponent("from", EngineCode))
+            if (!context.Query.HasComponent("from", EngineCode))
             {
                 throw new InvalidOperationException("No table is set");
             }
 
-            var from = ctx.Query.GetOneComponent<AbstractFrom>("from", EngineCode);
+            AbstractFrom from = context.Query.GetOneComponent<AbstractFrom>("from", EngineCode);
 
-            return "FROM " + CompileTableExpression(ctx, from);
+            return "FROM " + CompileTableExpression(context, from);
         }
 
-        public virtual string CompileJoins(SqlResult ctx)
+        public virtual string CompileJoins(SqlResult context)
         {
-            if (!ctx.Query.HasComponent("join", EngineCode))
+            if (!context.Query.HasComponent("join", EngineCode))
             {
                 return null;
             }
 
-            var joins = ctx.Query
+            IEnumerable<string> joins = context.Query
                 .GetComponents<BaseJoin>("join", EngineCode)
-                .Select(x => CompileJoin(ctx, x.Join));
+                .Select(x => CompileJoin(context, x.Join));
 
             return "\n" + string.Join("\n", joins);
         }
 
-        public virtual string CompileJoin(SqlResult ctx, Join join, bool isNested = false)
+        public virtual string CompileJoin(SqlResult context, Join join, bool isNested = false)
         {
 
             var from = join.GetOneComponent<AbstractFrom>("from", EngineCode);
             var conditions = join.GetComponents<AbstractCondition>("where", EngineCode);
 
-            var joinTable = CompileTableExpression(ctx, from);
-            var constraints = CompileConditions(ctx, conditions);
+            var joinTable = CompileTableExpression(context, from);
+            var constraints = CompileConditions(context, conditions);
 
             var onClause = conditions.Any() ? $" ON {constraints}" : "";
 
             return $"{join.Type} {joinTable}{onClause}";
         }
 
-        public virtual string CompileWheres(SqlResult ctx)
+        public virtual string CompileWheres(SqlResult context)
         {
-            if (!ctx.Query.HasComponent("from", EngineCode) || !ctx.Query.HasComponent("where", EngineCode))
+            if (!context.Query.HasComponent("from", EngineCode) || !context.Query.HasComponent("where", EngineCode))
             {
                 return null;
             }
 
-            var conditions = ctx.Query.GetComponents<AbstractCondition>("where", EngineCode);
-            var sql = CompileConditions(ctx, conditions).Trim();
+            List<AbstractCondition> conditions = context.Query.GetComponents<AbstractCondition>("where", EngineCode);
+            string sql = CompileConditions(context, conditions).Trim();
 
             return string.IsNullOrEmpty(sql) ? null : $"WHERE {sql}";
         }
 
-        public virtual string CompileGroups(SqlResult ctx)
+        public virtual string CompileGroups(SqlResult context)
         {
-            if (!ctx.Query.HasComponent("group", EngineCode))
+            if (!context.Query.HasComponent("group", EngineCode))
             {
                 return null;
             }
 
-            var columns = ctx.Query
+            IEnumerable<string> columns = context.Query
                 .GetComponents<AbstractColumn>("group", EngineCode)
-                .Select(x => CompileColumn(ctx, x));
+                .Select(x => CompileColumn(context, x));
 
             return "GROUP BY " + string.Join(", ", columns);
         }
 
-        public virtual string CompileOrders(SqlResult ctx)
+        public virtual string CompileOrders(SqlResult context)
         {
-            if (!ctx.Query.HasComponent("order", EngineCode))
+            if (!context.Query.HasComponent("order", EngineCode))
             {
                 return null;
             }
 
-            var columns = ctx.Query
+            var columns = context.Query
                 .GetComponents<AbstractOrderBy>("order", EngineCode)
                 .Select(x =>
             {
 
                 if (x is RawOrderBy raw)
                 {
-                    ctx.Bindings.AddRange(raw.Bindings);
+                    context.Bindings.AddRange(raw.Bindings);
                     return WrapIdentifiers(raw.Expression);
                 }
 
@@ -889,7 +905,13 @@ namespace SqlKata.Compilers
         {
             return values.Select(x => Wrap(x)).ToList();
         }
-
+        /// <summary>
+        /// Replaces escape charactors( // ) with {}[]
+        /// 
+        /// this method expects 4 esc charactors
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public virtual string WrapIdentifiers(string input)
         {
             return input
