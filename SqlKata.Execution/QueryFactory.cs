@@ -22,7 +22,7 @@ namespace SqlKata.Execution
 
         public Query Query()
         {
-            var query = new XQuery(this.Connection, this.Compiler);
+            XQuery query = new XQuery(this.Connection, this.Compiler);
 
             query.QueryFactory = this;
 
@@ -43,7 +43,7 @@ namespace SqlKata.Execution
         /// <returns></returns>
         public Query FromQuery(Query query)
         {
-            var xQuery = new XQuery(this.Connection, this.Compiler);
+            XQuery xQuery = new XQuery(this.Connection, this.Compiler);
 
             xQuery.QueryFactory = this;
 

@@ -16,16 +16,14 @@ namespace SqlKata.Execution
         {
             get
             {
-
                 if (PerPage < 1)
                 {
                     return 0;
                 }
 
-                var div = (float)Count / PerPage;
+                float div = (float)Count / PerPage;
 
                 return (int)Math.Ceiling(div);
-
             }
         }
 
