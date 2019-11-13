@@ -15,9 +15,9 @@ namespace SqlKata.Execution
 
         public static async Task<IEnumerable<T>> GetAsync<T>(this QueryFactory db, Query query)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
-            var result = (await db.Connection.QueryAsync<T>(
+            List<T> result = (await db.Connection.QueryAsync<T>(
                 compiled.Sql,
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
@@ -30,9 +30,9 @@ namespace SqlKata.Execution
 
         public static async Task<IEnumerable<IDictionary<string, object>>> GetDictionaryAsync(this QueryFactory db, Query query)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
-            var result = await db.Connection.QueryAsync(
+            IEnumerable<dynamic> result = await db.Connection.QueryAsync(
                 compiled.Sql,
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
@@ -48,7 +48,7 @@ namespace SqlKata.Execution
 
         public static async Task<T> FirstOrDefaultAsync<T>(this QueryFactory db, Query query)
         {
-            var list = await GetAsync<T>(db, query.Limit(1));
+            IEnumerable<T> list = await GetAsync<T>(db, query.Limit(1));
 
             return list.ElementAtOrDefault(0);
         }
@@ -60,7 +60,7 @@ namespace SqlKata.Execution
 
         public static async Task<T> FirstAsync<T>(this QueryFactory db, Query query)
         {
-            var item = await FirstOrDefaultAsync<T>(db, query);
+            T item = await FirstOrDefaultAsync<T>(db, query);
 
             if (item == null)
             {
@@ -82,7 +82,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
             return await db.Connection.ExecuteAsync(
                 compiled.Sql,
@@ -100,7 +100,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compile(query.Limit(1));
+            SqlResult compiled = db.Compile(query.Limit(1));
 
             return await db.Connection.ExecuteScalarAsync<T>(
                 compiled.Sql,
@@ -118,7 +118,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compiler.Compile(queries);
+            SqlResult compiled = db.Compiler.Compile(queries);
 
             return await db.Connection.QueryMultipleAsync(
                 compiled.Sql,
@@ -137,25 +137,22 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-
-            var multi = await db.GetMultipleAsync<T>(
+            SqlMapper.GridReader multi = await db.GetMultipleAsync<T>(
                 queries,
                 transaction,
                 commandType
             );
 
-            var list = new List<IEnumerable<T>>();
+            List<IEnumerable<T>> list = new List<IEnumerable<T>>();
 
             using (multi)
             {
-                for (var i = 0; i < queries.Count(); i++)
+                for (int i = 0; i < queries.Count(); i++)
                 {
                     list.Add(multi.Read<T>());
                 }
             }
-
             return list;
-
         }
 
         #endregion
@@ -212,7 +209,7 @@ namespace SqlKata.Execution
                 throw new ArgumentException("PerPage param should be greater than or equal to 1", nameof(perPage));
             }
 
-            var count = await query.Clone().CountAsync<long>();
+            long count = await query.Clone().CountAsync<long>();
 
             IEnumerable<T> list;
 
@@ -243,7 +240,7 @@ namespace SqlKata.Execution
             Func<IEnumerable<T>, int, bool> func
         )
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            PaginationResult<T> result = await db.PaginateAsync<T>(query, 1, chunkSize);
 
             if (!func(result.List, 1))
             {
@@ -269,7 +266,7 @@ namespace SqlKata.Execution
             int> action
         )
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            PaginationResult<T> result = await db.PaginateAsync<T>(query, 1, chunkSize);
 
             action(result.List, 1);
 
@@ -305,21 +302,20 @@ namespace SqlKata.Execution
                 return result;
             }
 
-            var canBeProcessed = query.Includes.Any() && result.ElementAt(0) is IDynamicMetaObjectProvider;
+            bool canBeProcessed = query.Includes.Any() && result.ElementAt(0) is IDynamicMetaObjectProvider;
 
             if (!canBeProcessed)
             {
                 return result;
             }
 
-            var dynamicResult = result
+            List<Dictionary<string, object>> dynamicResult = result
                 .Cast<IDictionary<string, object>>()
                 .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
-            foreach (var include in query.Includes)
+            foreach (Include include in query.Includes)
             {
-
                 if (include.IsMany)
                 {
                     if (include.ForeignKey == null)
@@ -328,19 +324,19 @@ namespace SqlKata.Execution
                         // I will try to fetch the table name if provided and appending the Id as a convention
                         // Here am using Humanizer package to help getting the singular form of the table
 
-                        var fromTable = query.GetOneComponent("from") as FromClause;
+                        FromClause fromTable = query.GetOneComponent("from") as FromClause;
 
                         if (fromTable == null)
                         {
                             throw new InvalidOperationException($"Cannot guess the foreign key for the included relation '{include.Name}'");
                         }
 
-                        var table = fromTable.Alias ?? fromTable.Table;
+                        string table = fromTable.Alias ?? fromTable.Table;
 
                         include.ForeignKey = table.Singularize(false) + "Id";
                     }
 
-                    var localIds = dynamicResult.Where(x => x[include.LocalKey] != null)
+                    List<string> localIds = dynamicResult.Where(x => x[include.LocalKey] != null)
                     .Select(x => x[include.LocalKey].ToString())
                     .ToList();
 
@@ -349,18 +345,17 @@ namespace SqlKata.Execution
                         continue;
                     }
 
-                    var children = (await include.Query.WhereIn(include.ForeignKey, localIds).GetAsync())
+                    Dictionary<string, List<Dictionary<string, object>>> children = (await include.Query.WhereIn(include.ForeignKey, localIds).GetAsync())
                         .Cast<IDictionary<string, object>>()
                         .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
                         .GroupBy(x => x[include.ForeignKey].ToString())
                         .ToDictionary(x => x.Key, x => x.ToList());
 
-                    foreach (var item in dynamicResult)
+                    foreach (Dictionary<string, object> item in dynamicResult)
                     {
-                        var localValue = item[include.LocalKey].ToString();
+                        string localValue = item[include.LocalKey].ToString();
                         item[include.Name] = children.ContainsKey(localValue) ? children[localValue] : new List<Dictionary<string, object>>();
                     }
-
                     continue;
                 }
 
@@ -369,7 +364,7 @@ namespace SqlKata.Execution
                     include.ForeignKey = include.Name + "Id";
                 }
 
-                var foreignIds = dynamicResult.Where(x => x[include.ForeignKey] != null)
+                List<string> foreignIds = dynamicResult.Where(x => x[include.ForeignKey] != null)
                     .Select(x => x[include.ForeignKey].ToString())
                     .ToList();
 
@@ -378,20 +373,18 @@ namespace SqlKata.Execution
                     continue;
                 }
 
-                var related = (await include.Query.WhereIn(include.LocalKey, foreignIds).GetAsync())
+                Dictionary<string, Dictionary<string, object>> related = (await include.Query.WhereIn(include.LocalKey, foreignIds).GetAsync())
                     .Cast<IDictionary<string, object>>()
                     .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
                     .ToDictionary(x => x[include.LocalKey].ToString());
 
-                foreach (var item in dynamicResult)
+                foreach (Dictionary<string, object> item in dynamicResult)
                 {
-                    var foreignValue = item[include.ForeignKey].ToString();
+                    string foreignValue = item[include.ForeignKey].ToString();
                     item[include.Name] = related.ContainsKey(foreignValue) ? related[foreignValue] : null;
                 }
             }
-
             return dynamicResult.Cast<T>();
-
         }
     }
 }

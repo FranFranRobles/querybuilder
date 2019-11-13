@@ -38,7 +38,7 @@ namespace SqlKata.Execution
 
         public static async Task<PaginationResult<T>> PaginateAsync<T>(this Query query, int page, int perPage = 25)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return await db.PaginateAsync<T>(query, page, perPage);
         }
@@ -86,7 +86,7 @@ namespace SqlKata.Execution
 
         public static async Task<T> InsertGetIdAsync<T>(this Query query, object data)
         {
-            var row = await QueryHelper.CreateQueryFactory(query)
+            InsertGetIdRow<T> row = await QueryHelper.CreateQueryFactory(query)
                 .FirstAsync<InsertGetIdRow<T>>(query.AsInsert(data, true));
 
             return row.Id;

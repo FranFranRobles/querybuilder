@@ -4,14 +4,14 @@ namespace SqlKata.Execution
     {
         public static T Aggregate<T>(this Query query, string aggregateOperation, params string[] columns)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return db.ExecuteScalar<T>(query.AsAggregate(aggregateOperation, columns));
         }
 
         public static T Count<T>(this Query query, params string[] columns)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return db.ExecuteScalar<T>(query.AsCount(columns));
         }
@@ -35,6 +35,5 @@ namespace SqlKata.Execution
         {
             return query.Aggregate<T>("max", column);
         }
-
     }
 }

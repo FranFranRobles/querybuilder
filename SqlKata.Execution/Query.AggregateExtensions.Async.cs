@@ -10,14 +10,14 @@ namespace SqlKata.Execution
             params string[] columns
         )
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return await db.ExecuteScalarAsync<T>(query.AsAggregate(aggregateOperation, columns));
         }
 
         public static async Task<T> CountAsync<T>(this Query query, params string[] columns)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return await db.ExecuteScalarAsync<T>(query.AsCount(columns));
         }
@@ -41,6 +41,5 @@ namespace SqlKata.Execution
         {
             return await query.AggregateAsync<T>("max", column);
         }
-
     }
 }
