@@ -106,22 +106,18 @@ namespace SqlKata.Compilers
 
             if (basicStringConditions.Contains(x.Operator))
             {
-                method = "LIKE";
-
-                if (x.Operator == "starts")
-                {
-                    value = $"{value}%";
-                }
-                else if (x.Operator == "ends")
-                {
-                    value = $"%{value}";
-                }
-                else if (x.Operator == "contains")
-                {
-                    value = $"%{value}%";
-                }
+                AppendSearchCondition(x, ref value, ref method);
             }
 
+            string sql;
+
+            sql = BuildSQLQuery(context, x, ref value, ref column, method);
+
+            return x.IsNot ? $"NOT ({sql})" : sql;
+        }
+
+        private string BuildSQLQuery(SqlResult context, BasicStringCondition x, ref string value, ref string column, string method)
+        {
             string sql;
             if (!x.CaseSensitive)
             {
@@ -138,7 +134,25 @@ namespace SqlKata.Compilers
                 sql = $"{column} {checkOperator(method)} {Parameter(context, value)}";
             }
 
-            return x.IsNot ? $"NOT ({sql})" : sql;
+            return sql;
+        }
+
+        private static void AppendSearchCondition(BasicStringCondition x, ref string value,  ref string method)
+        {
+            method = "LIKE";
+
+            if (x.Operator == "starts")
+            {
+                value = $"{value}%";
+            }
+            else if (x.Operator == "ends")
+            {
+                value = $"%{value}";
+            }
+            else if (x.Operator == "contains")
+            {
+                value = $"%{value}%";
+            }
         }
 
         protected virtual string CompileBasicDateCondition(SqlResult context, BasicDateCondition x)
