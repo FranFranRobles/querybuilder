@@ -1,3 +1,4 @@
+
 namespace SqlKata.Compilers
 {
     public class MySqlCompiler : Compiler
