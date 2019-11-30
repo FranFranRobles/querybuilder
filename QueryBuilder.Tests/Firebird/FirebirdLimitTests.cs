@@ -30,6 +30,15 @@ namespace SqlKata.Tests.Firebird
 
             Assert.Null(compiler.CompileLimit(context));
         }
+        [Fact]
+        public void LongLimitOnly()
+        {
+            long limit = 10;
+            Query query = new Query("Table").Limit(limit);
+            SqlResult context = new SqlResult { Query = query };
+
+            Assert.Null(compiler.CompileLimit(context));
+        }
 
         [Fact]
         public void OffsetOnly()
@@ -45,6 +54,18 @@ namespace SqlKata.Tests.Firebird
         {
             Query query = new Query("Table").Limit(5).Offset(20);
             SqlResult context = new SqlResult {Query = query};
+
+            Assert.Equal("ROWS ? TO ?", compiler.CompileLimit(context));
+            Assert.Equal(21, context.Bindings[0]);
+            Assert.Equal(25, context.Bindings[1]);
+            Assert.Equal(2, context.Bindings.Count);
+        }
+        [Fact]
+        public void LongLimitAndOffset()
+        {
+            long limit = 5;
+            Query query = new Query("Table").Limit(limit).Offset(20);
+            SqlResult context = new SqlResult { Query = query };
 
             Assert.Equal("ROWS ? TO ?", compiler.CompileLimit(context));
             Assert.Equal(21, context.Bindings[0]);

@@ -31,6 +31,16 @@ namespace SqlKata.Tests.MySql
             Assert.Equal("LIMIT ?", compiler.CompileLimit(context));
             Assert.Equal(10, context.Bindings[0]);
         }
+        [Fact]
+        public void WithNoLongLimitOffset()
+        {
+            long limit = 10;
+            Query query = new Query("Table").Limit(limit);
+            SqlResult context = new SqlResult { Query = query };
+
+            Assert.Equal("LIMIT ?", compiler.CompileLimit(context));
+            Assert.Equal(10, context.Bindings[0]);
+        }
 
         [Fact]
         public void WithNoLimit()
@@ -51,6 +61,18 @@ namespace SqlKata.Tests.MySql
 
             Assert.Equal("LIMIT ? OFFSET ?", compiler.CompileLimit(context));
             Assert.Equal(5, context.Bindings[0]);
+            Assert.Equal(20, context.Bindings[1]);
+            Assert.Equal(2, context.Bindings.Count);
+        }
+        [Fact]
+        public void WithLongLimitAndOffset()
+        {
+            long limit = 5;
+            Query query = new Query("Table").Limit(limit).Offset(20);
+            SqlResult context = new SqlResult { Query = query };
+
+            Assert.Equal("LIMIT ? OFFSET ?", compiler.CompileLimit(context));
+            Assert.Equal(limit, context.Bindings[0]);
             Assert.Equal(20, context.Bindings[1]);
             Assert.Equal(2, context.Bindings.Count);
         }
