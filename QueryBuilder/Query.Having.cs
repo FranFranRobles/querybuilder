@@ -358,28 +358,24 @@ namespace SqlKata
         {
             // If the developer has passed a string most probably he wants List<string>
             // since string is considered as List<char>
-            if (values is string)
-            {
-                string val = values as string;
 
-                return AddComponent("having", new InCondition<string>
-                {
-                    Column = column,
-                    IsOr = GetOr(),
-                    IsNot = GetNot(),
-                    Values = new List<string> { val }
-                });
-            }
-
-            return AddComponent("having", new InCondition<T>
+            InCondition<T> cond = new InCondition<T>
             {
                 Column = column,
                 IsOr = GetOr(),
-                IsNot = GetNot(),
-                Values = values.Distinct().ToList()
-            });
-
-
+                IsNot = GetNot()
+            })
+            
+            if (values is string)
+            {
+                string val = values as string;
+                cond.Values = new List<string> { val } as List<T>;
+            }
+            else
+            {
+                cond.Values = values.Distinct().ToList();
+            }
+            return AddComponent("having", cond);
         }
 
         public Query OrHavingIn<T>(string column, IEnumerable<T> values)
