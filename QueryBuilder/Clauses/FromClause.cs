@@ -1,8 +1,9 @@
 using System;
+using SqlKata.Utils;
 
 namespace SqlKata
 {
-    public abstract class AbstractFrom : AbstractClause
+    public abstract class AbstractFrom : AbstractClause, IFromVisitorAcceptor
     {
         protected string _alias;
 
@@ -11,6 +12,8 @@ namespace SqlKata
         /// </summary>
         /// <returns></returns>
         public virtual string Alias { get => _alias; set => _alias = value; }
+
+        public abstract void Accept(IFromVisitor visitor);
     }
 
     /// <summary>
@@ -33,6 +36,11 @@ namespace SqlKata
 
                 return Table;
             }
+        }
+
+        public override void Accept(IFromVisitor visitor)
+        {
+            visitor.Visit(this);
         }
 
         /// <inheritdoc />
@@ -62,7 +70,10 @@ namespace SqlKata
                 return string.IsNullOrEmpty(_alias) ? Query.QueryAlias : _alias;
             }
         }
-
+        public override void Accept(IFromVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
         /// <inheritdoc />
         public override AbstractClause Clone()
         {
@@ -80,7 +91,10 @@ namespace SqlKata
     {
         public string Expression { get; set; }
         public object[] Bindings { set; get; }
-
+        public override void Accept(IFromVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
         /// <inheritdoc />
         public override AbstractClause Clone()
         {
