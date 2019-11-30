@@ -364,7 +364,7 @@ namespace SqlKata
                 Column = column,
                 IsOr = GetOr(),
                 IsNot = GetNot()
-            })
+            };
             
             if (values is string)
             {
