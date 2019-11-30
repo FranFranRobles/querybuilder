@@ -344,54 +344,50 @@ namespace SqlKata.Execution
                     .Select(x => x[include.LocalKey].ToString())
                     .ToList();
 
-                    if (!localIds.Any())
+                    if (localIds.Any())
                     {
-                        continue;
+                        var children = (await include.Query.WhereIn(include.ForeignKey, localIds).GetAsync())
+                            .Cast<IDictionary<string, object>>()
+                            .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
+                            .GroupBy(x => x[include.ForeignKey].ToString())
+                            .ToDictionary(x => x.Key, x => x.ToList());
+
+                        foreach (var item in dynamicResult)
+                        {
+                            var localValue = item[include.LocalKey].ToString();
+                            item[include.Name] = children.ContainsKey(localValue) ? children[localValue] : new List<Dictionary<string, object>>();
+                        }
+
+                    }
+                }
+                else
+                {
+                    if (include.ForeignKey == null)
+                    {
+                        include.ForeignKey = include.Name + "Id";
                     }
 
-                    var children = (await include.Query.WhereIn(include.ForeignKey, localIds).GetAsync())
-                        .Cast<IDictionary<string, object>>()
-                        .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
-                        .GroupBy(x => x[include.ForeignKey].ToString())
-                        .ToDictionary(x => x.Key, x => x.ToList());
+                    var foreignIds = dynamicResult.Where(x => x[include.ForeignKey] != null)
+                        .Select(x => x[include.ForeignKey].ToString())
+                        .ToList();
 
-                    foreach (var item in dynamicResult)
+                    if (foreignIds.Any())
                     {
-                        var localValue = item[include.LocalKey].ToString();
-                        item[include.Name] = children.ContainsKey(localValue) ? children[localValue] : new List<Dictionary<string, object>>();
+                        var related = (await include.Query.WhereIn(include.LocalKey, foreignIds).GetAsync())
+                            .Cast<IDictionary<string, object>>()
+                            .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
+                            .ToDictionary(x => x[include.LocalKey].ToString());
+
+                        foreach (var item in dynamicResult)
+                        {
+                            var foreignValue = item[include.ForeignKey].ToString();
+                            item[include.Name] = related.ContainsKey(foreignValue) ? related[foreignValue] : null;
+                        }
                     }
-
-                    continue;
-                }
-
-                if (include.ForeignKey == null)
-                {
-                    include.ForeignKey = include.Name + "Id";
-                }
-
-                var foreignIds = dynamicResult.Where(x => x[include.ForeignKey] != null)
-                    .Select(x => x[include.ForeignKey].ToString())
-                    .ToList();
-
-                if (!foreignIds.Any())
-                {
-                    continue;
-                }
-
-                var related = (await include.Query.WhereIn(include.LocalKey, foreignIds).GetAsync())
-                    .Cast<IDictionary<string, object>>()
-                    .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))
-                    .ToDictionary(x => x[include.LocalKey].ToString());
-
-                foreach (var item in dynamicResult)
-                {
-                    var foreignValue = item[include.ForeignKey].ToString();
-                    item[include.Name] = related.ContainsKey(foreignValue) ? related[foreignValue] : null;
                 }
             }
 
             return dynamicResult.Cast<T>();
-
         }
     }
 }
