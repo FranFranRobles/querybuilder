@@ -10,16 +10,11 @@ namespace SqlKata
     {
         public static bool IsArray(object value)
         {
-            if(value is string)
+            if(value is string || value is byte[])
             {
                 return false;
             }
-
-            if (value is byte[])
-            {
-                return false;
-            }
-
+            
             return value is IEnumerable;
         }
 
