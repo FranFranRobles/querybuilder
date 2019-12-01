@@ -311,7 +311,6 @@ namespace SqlKata.Execution
             {
                 return result;
             }
-
             var dynamicResult = result
                 .Cast<IDictionary<string, object>>()
                 .Select(x => new Dictionary<string, object>(x, StringComparer.OrdinalIgnoreCase))

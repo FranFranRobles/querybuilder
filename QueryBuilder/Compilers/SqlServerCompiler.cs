@@ -4,13 +4,17 @@ namespace SqlKata.Compilers
     {
         public SqlServerCompiler()
         {
-            OpeningIdentifier = "[";
-            ClosingIdentifier = "]";
-            LastId = "SELECT scope_identity() as Id";
+            wrapper.OpeningIdentifier = "[";
+            wrapper.ClosingIdentifier = "]";
+            wrapper.LastId = "SELECT scope_identity() as Id";
         }
 
         public override string EngineCode { get; } = EngineCodes.SqlServer;
         public bool UseLegacyPagination { get; set; } = true;
+        public string Wrap(string value)
+        {
+            return wrapper.Wrap(value);
+        }
 
         protected override SqlResult CompileSelectQuery(Query query)
         {
@@ -144,7 +148,7 @@ namespace SqlKata.Compilers
 
         protected override string CompileBasicDateCondition(SqlResult context, BasicDateCondition condition)
         {
-            string column = Wrap(condition.Column);
+            string column = wrapper.Wrap(condition.Column);
             string part = condition.Part.ToUpperInvariant();
 
             string left;
