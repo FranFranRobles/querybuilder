@@ -17,11 +17,10 @@ namespace SqlKata.Compilers
 
         public List<AbstractFrom> Find()
         {
-            if (null != orderedCteList)
+            if (orderedCteList != null)
                 return orderedCteList;
 
             namesOfPreviousCtes = new HashSet<string>();
-
             orderedCteList = findInternal(query);
 
             namesOfPreviousCtes.Clear();
@@ -38,15 +37,15 @@ namespace SqlKata.Compilers
 
             foreach (AbstractFrom cte in cteList)
             {
-                if (namesOfPreviousCtes.Contains(cte.Alias))
-                    continue;
-
-                namesOfPreviousCtes.Add(cte.Alias);
-                resultList.Add(cte);
-
-                if (cte is QueryFromClause queryFromClause)
+                if (!namesOfPreviousCtes.Contains(cte.Alias))
                 {
-                    resultList.InsertRange(0, findInternal(queryFromClause.Query));
+                    namesOfPreviousCtes.Add(cte.Alias);
+                    resultList.Add(cte);
+
+                    if (cte is QueryFromClause queryFromClause)
+                    {
+                        resultList.InsertRange(0, findInternal(queryFromClause.Query));
+                    }
                 }
             }
 
