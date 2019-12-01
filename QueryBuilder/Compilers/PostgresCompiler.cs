@@ -4,14 +4,14 @@ namespace SqlKata.Compilers
     {
         public PostgresCompiler()
         {
-            LastId = "SELECT lastval() AS id";
+            wrapper.LastId = "SELECT lastval() AS id";
         }
 
         public override string EngineCode { get; } = EngineCodes.PostgreSql;
 
         protected override string CompileBasicDateCondition(SqlResult context, BasicDateCondition condition)
         {
-            string column = Wrap(condition.Column);
+            string column = wrapper.Wrap(condition.Column);
 
             string left;
 

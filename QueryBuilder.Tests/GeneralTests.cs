@@ -144,7 +144,6 @@ namespace SqlKata.Tests
         public void WrapWithSpace()
         {
             SqlServerCompiler compiler = new SqlServerCompiler();
-
             Assert.Equal("[My Table] AS [Table]", compiler.Wrap("My Table as Table"));
         }
 
@@ -152,7 +151,6 @@ namespace SqlKata.Tests
         public void WrapWithDotes()
         {
             SqlServerCompiler compiler = new SqlServerCompiler();
-
             Assert.Equal("[My Schema].[My Table] AS [Table]", compiler.Wrap("My Schema.My Table as Table"));
         }
 
