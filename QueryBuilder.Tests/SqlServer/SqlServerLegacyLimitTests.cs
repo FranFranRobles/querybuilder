@@ -49,6 +49,15 @@ namespace SqlKata.Tests.SqlServer
 
             Assert.Null(compiler.CompileLimit(context));
         }
+        [Fact]
+        public void LongLimitAndOffset()
+        {
+            long limit = 5;
+            Query query = new Query("Table").Limit(limit).Offset(20);
+            SqlResult context = new SqlResult { Query = query };
+
+            Assert.Null(compiler.CompileLimit(context));
+        }
 
         [Fact]
         public void ShouldEmulateOrderByIfNoOrderByProvided()

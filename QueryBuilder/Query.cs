@@ -127,12 +127,30 @@ namespace SqlKata
                 Bindings = bindings,
             });
         }
-
+        /// <summary>
+        /// Sets the limit of how many records to return in a query
+        /// </summary>
+        /// <param name="value">record limit value</param>
+        /// <returns>a new query with a limit value added</returns>
         public Query Limit(int value)
         {
             LimitClause newClause = new LimitClause
             {
                 Limit = value
+            };
+
+            return AddOrReplaceComponent("limit", newClause);
+        }
+        /// <summary>
+        /// Sets the limit of how many records to return in a query
+        /// </summary>
+        /// <param name="value">record limit value</param>
+        /// <returns>a new query with a limit value added</returns>
+        public Query Limit(long value)
+        {
+            LimitClause newClause = new LimitClause
+            {
+                LongLimit = value
             };
 
             return AddOrReplaceComponent("limit", newClause);

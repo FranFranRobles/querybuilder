@@ -588,6 +588,19 @@ namespace SqlKata.Tests
             Assert.Equal("SELECT \"id\", \"name\" FROM \"users\" LIMIT 10", c[EngineCodes.PostgreSql]);
             Assert.Equal("SELECT FIRST 10 \"ID\", \"NAME\" FROM \"USERS\"", c[EngineCodes.Firebird]);
         }
+        [Fact]
+        public void LongLimit()
+        {
+            long limit = 10;
+            Query q = new Query().From("users").Select("id", "name").Limit(limit);
+            IReadOnlyDictionary<string, string> c = Compile(q);
+
+            // Assert.Equal(c[EngineCodes.SqlServer], "SELECT * FROM (SELECT [id], [name],ROW_NUMBER() OVER (SELECT 0) AS [row_num] FROM [users]) AS [temp_table] WHERE [row_num] >= 10");
+            Assert.Equal("SELECT TOP (10) [id], [name] FROM [users]", c[EngineCodes.SqlServer]);
+            Assert.Equal("SELECT `id`, `name` FROM `users` LIMIT 10", c[EngineCodes.MySql]);
+            Assert.Equal("SELECT \"id\", \"name\" FROM \"users\" LIMIT 10", c[EngineCodes.PostgreSql]);
+            Assert.Equal("SELECT FIRST 10 \"ID\", \"NAME\" FROM \"USERS\"", c[EngineCodes.Firebird]);
+        }
 
         [Fact]
         public void Offset()
@@ -607,6 +620,21 @@ namespace SqlKata.Tests
         public void LimitOffset()
         {
             Query q = new Query().From("users").Offset(10).Limit(5);
+
+            IReadOnlyDictionary<string, string> c = Compile(q);
+
+            Assert.Equal(
+                "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS [row_num] FROM [users]) AS [results_wrapper] WHERE [row_num] BETWEEN 11 AND 15",
+                c[EngineCodes.SqlServer]);
+            Assert.Equal("SELECT * FROM `users` LIMIT 5 OFFSET 10", c[EngineCodes.MySql]);
+            Assert.Equal("SELECT * FROM \"users\" LIMIT 5 OFFSET 10", c[EngineCodes.PostgreSql]);
+            Assert.Equal("SELECT * FROM \"USERS\" ROWS 11 TO 15", c[EngineCodes.Firebird]);
+        }
+        [Fact]
+        public void LongLimitOffset()
+        {
+            long limit = 5;
+            Query q = new Query().From("users").Offset(10).Limit(limit);
 
             IReadOnlyDictionary<string, string> c = Compile(q);
 

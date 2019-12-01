@@ -21,12 +21,34 @@ namespace SqlKata.Tests.SqlServer
             string actual = compiler.Compile(q).ToString();
             Assert.Contains("SELECT TOP (1) * FROM [Foo]", actual);
         }
+        [Fact]
+        public void Compile_RawSql_WithLongLimit_ReturnsCorrectQuery()
+        {
+            long limit = 1;
+            Query q = new Query().From("Foo as src").Limit(limit);
+
+            string actual = compiler.Compile(q).ToString();
+            Assert.Contains("SELECT TOP (1) * FROM [Foo]", actual);
+        }
 
         [Fact]
         public void SqlCompile_QueryAadNestedLimit_ReturnsQueryWithTop()
         {
             Query q = new Query().From("Foo as src").Select("MyData");
             Query n = new Query().From("Bar").Limit(1).Select("MyData");
+            q.Select(n, "Bar");
+
+            string actual = compiler.Compile(q).ToString();
+            Assert.Contains("SELECT TOP (1) [MyData] FROM [Bar]", actual);
+            Assert.Contains("SELECT [MyData], (SELECT TOP (1) [MyData] FROM [Bar]) AS [Bar] FROM [Foo] AS [src]",
+                actual);
+        }
+        [Fact]
+        public void SqlCompile_QueryAadNestedLongLimit_ReturnsQueryWithTop()
+        {
+            long limit = 1;
+            Query q = new Query().From("Foo as src").Select("MyData");
+            Query n = new Query().From("Bar").Limit(limit).Select("MyData");
             q.Select(n, "Bar");
 
             string actual = compiler.Compile(q).ToString();
