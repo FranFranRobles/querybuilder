@@ -2,24 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using SqlKata.Utils;
 
 namespace SqlKata.Compilers
 {
     public partial class Compiler
     {
         private readonly ConditionsCompilerProvider _compileConditionMethodsProvider;
-        protected virtual string parameterPlaceholder { get; set; } = "?";
-        protected virtual string parameterPrefix { get; set; } = "@p";
-        protected virtual string OpeningIdentifier { get; set; } = "\"";
-        protected virtual string ClosingIdentifier { get; set; } = "\"";
-        protected virtual string ColumnAsKeyword { get; set; } = "AS ";
-        protected virtual string TableAsKeyword { get; set; } = "AS ";
-        protected virtual string LastId { get; set; } = "";
-        protected virtual string EscapeCharacter { get; set; } = "\\";
+        internal CompilerWrap wrapper;
 
         protected Compiler()
         {
             _compileConditionMethodsProvider = new ConditionsCompilerProvider(this);
+            wrapper = new CompilerWrap();
         }
 
         public virtual string EngineCode { get; }
@@ -48,13 +43,13 @@ namespace SqlKata.Compilers
         protected Dictionary<string, object> generateNamedBindings(object[] bindings)
         {
             return Helper.Flatten(bindings).Select((v, i) => new { i, v })
-                .ToDictionary(x => parameterPrefix + x.i, x => x.v);
+                .ToDictionary(x => wrapper.parameterPrefix + x.i, x => x.v);
         }
 
         protected SqlResult PrepareResult(SqlResult context)
         {
             context.NamedBindings = generateNamedBindings(context.Bindings.ToArray());
-            context.Sql = Helper.ReplaceAll(context.RawSql, parameterPlaceholder, i => parameterPrefix + i);
+            context.Sql = Helper.ReplaceAll(context.RawSql, wrapper.parameterPlaceholder, i => wrapper.parameterPrefix + i);
             return context;
         }
 
@@ -234,8 +229,10 @@ namespace SqlKata.Compilers
                 throw new InvalidOperationException("Invalid table expression");
             }
 
-            string table = null;
-            
+            TableProcessor tableProcessor = new TableProcessor(context, wrapper);
+            fromClause.Accept(tableProcessor);
+            string table = tableProcessor.GetTableExpression();
+            /*
             if (fromClause is FromClause fromClauseCast)
             {
                 table = Wrap(fromClauseCast.Table);
@@ -244,7 +241,7 @@ namespace SqlKata.Compilers
             {
                 table = WrapIdentifiers(rawFromClause.Expression);
                 context.Bindings.AddRange(rawFromClause.Bindings);
-            }
+            }*/
 
             if (table is null)
             {
@@ -277,7 +274,7 @@ namespace SqlKata.Compilers
 
             for (int column = 0; column < toUpdate.Columns.Count; column++)
             {
-                parts.Add($"{Wrap(toUpdate.Columns[column])} = ?");
+                parts.Add($"{wrapper.Wrap(toUpdate.Columns[column])} = ?");
             }
             return parts;
         }
@@ -314,9 +311,9 @@ namespace SqlKata.Compilers
 
             context.RawSql = $"INSERT INTO {table} ({columns}) VALUES ({values})";
 
-            if (insertClause.ReturnId && !string.IsNullOrEmpty(LastId))
+            if (insertClause.ReturnId && !string.IsNullOrEmpty(wrapper.LastId))
             {
-                context.RawSql += ";" + LastId;
+                context.RawSql += ";" + wrapper.LastId;
             }
 
             return context;
@@ -408,7 +405,7 @@ namespace SqlKata.Compilers
             if (column is RawColumn raw)
             {
                 context.Bindings.AddRange(raw.Bindings);
-                return WrapIdentifiers(raw.Expression);
+                return wrapper.WrapIdentifiers(raw.Expression);
             }
 
             if (column is QueryColumn queryColumn)
@@ -417,7 +414,7 @@ namespace SqlKata.Compilers
 
                 if (!string.IsNullOrWhiteSpace(queryColumn.Query.QueryAlias))
                 {
-                    alias = $" {ColumnAsKeyword}{WrapValue(queryColumn.Query.QueryAlias)}";
+                    alias = $" {wrapper.ColumnAsKeyword}{wrapper.WrapValue(queryColumn.Query.QueryAlias)}";
                 }
 
                 SqlResult subContext = CompileSelectQuery(queryColumn.Query);
@@ -427,7 +424,7 @@ namespace SqlKata.Compilers
                 return "(" + subContext.RawSql + $"){alias}";
             }
 
-            return Wrap((column as Column).Name);
+            return wrapper.Wrap((column as Column).Name);
 
         }
 
@@ -444,14 +441,14 @@ namespace SqlKata.Compilers
             if (context is RawFromClause raw)
             {
                 sqlContext.Bindings.AddRange(raw.Bindings);
-                sqlContext.RawSql = $"{WrapValue(raw.Alias)} AS ({WrapIdentifiers(raw.Expression)})";
+                sqlContext.RawSql = $"{wrapper.WrapValue(raw.Alias)} AS ({wrapper.WrapIdentifiers(raw.Expression)})";
             }
             else if (context is QueryFromClause queryFromClause)
             {
                 SqlResult subSqlContext = CompileSelectQuery(queryFromClause.Query);
                 sqlContext.Bindings.AddRange(subSqlContext.Bindings);
 
-                sqlContext.RawSql = $"{WrapValue(queryFromClause.Alias)} AS ({subSqlContext.RawSql})";
+                sqlContext.RawSql = $"{wrapper.WrapValue(queryFromClause.Alias)} AS ({subSqlContext.RawSql})";
             }
 
             return sqlContext;
@@ -483,7 +480,7 @@ namespace SqlKata.Compilers
                         sql = "DISTINCT " + sql;
                     }
 
-                    return "SELECT " + aggregate.Type.ToUpperInvariant() + "(" + sql + $") {ColumnAsKeyword}" + WrapValue(aggregate.Type);
+                    return "SELECT " + aggregate.Type.ToUpperInvariant() + "(" + sql + $") {wrapper.ColumnAsKeyword}" + wrapper.WrapValue(aggregate.Type);
                 }
 
                 return "SELECT 1";
@@ -533,7 +530,7 @@ namespace SqlKata.Compilers
 
                     context.Bindings.AddRange(combineRawClause.Bindings);
 
-                    combinedQueries.Add(WrapIdentifiers(combineRawClause.Expression));
+                    combinedQueries.Add(wrapper.WrapIdentifiers(combineRawClause.Expression));
 
                 }
             }
@@ -547,14 +544,14 @@ namespace SqlKata.Compilers
             if (from is RawFromClause raw)
             {
                 context.Bindings.AddRange(raw.Bindings);
-                return WrapIdentifiers(raw.Expression);
+                return wrapper.WrapIdentifiers(raw.Expression);
             }
 
             if (from is QueryFromClause queryFromClause)
             {
                 Query fromQuery = queryFromClause.Query;
 
-                string alias = string.IsNullOrEmpty(fromQuery.QueryAlias) ? "" : $" {TableAsKeyword}" + WrapValue(fromQuery.QueryAlias);
+                string alias = string.IsNullOrEmpty(fromQuery.QueryAlias) ? "" : $" {wrapper.TableAsKeyword}" + wrapper.WrapValue(fromQuery.QueryAlias);
 
                 SqlResult subContext = CompileSelectQuery(fromQuery);
 
@@ -565,7 +562,7 @@ namespace SqlKata.Compilers
 
             if (from is FromClause fromClause)
             {
-                return Wrap(fromClause.Table);
+                return wrapper.Wrap(fromClause.Table);
             }
 
             throw InvalidClauseException("TableExpression", from);
@@ -653,12 +650,12 @@ namespace SqlKata.Compilers
                 if (orderBy is RawOrderBy raw)
                 {
                     context.Bindings.AddRange(raw.Bindings);
-                    return WrapIdentifiers(raw.Expression);
+                    return wrapper.WrapIdentifiers(raw.Expression);
                 }
 
                 string direction = (orderBy as OrderBy).Ascending ? "" : " DESC";
 
-                return Wrap((orderBy as OrderBy).Column) + direction;
+                return wrapper.Wrap((orderBy as OrderBy).Column) + direction;
             });
 
             return "ORDER BY " + string.Join(", ", columns);
@@ -769,51 +766,8 @@ namespace SqlKata.Compilers
 
             return op;
         }
+    
 
-        /// <summary>
-        /// Wrap a single string in a column identifier.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public virtual string Wrap(string value)
-        {
-
-            if (value.ToLowerInvariant().Contains(" as "))
-            {
-                int index = value.ToLowerInvariant().IndexOf(" as ");
-                string before = value.Substring(0, index);
-                string after = value.Substring(index + 4);
-
-                return Wrap(before) + $" {ColumnAsKeyword}" + WrapValue(after);
-            }
-
-            if (value.Contains("."))
-            {
-                return string.Join(".", value.Split('.').Select((x, index) =>
-                {
-                    return WrapValue(x);
-                }));
-            }
-
-            // If we reach here then the value does not contain an "AS" alias
-            // nor dot "." expression, so wrap it as regular value.
-            return WrapValue(value);
-        }
-
-        /// <summary>
-        /// Wrap a single string in keyword identifiers.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public virtual string WrapValue(string value)
-        {
-            if (value == "*") return value;
-
-            string opening = this.OpeningIdentifier;
-            string closing = this.ClosingIdentifier;
-
-            return opening + value.Replace(closing, closing + closing) + closing;
-        }
 
         /// <summary>
         /// Resolve a parameter
@@ -886,19 +840,7 @@ namespace SqlKata.Compilers
         /// <returns></returns>
         public virtual List<string> WrapArray(List<string> values)
         {
-            return values.Select(x => Wrap(x)).ToList();
-        }
-
-        public virtual string WrapIdentifiers(string input)
-        {
-            return input
-
-                // deprecated
-                .ReplaceIdentifierUnlessEscaped(this.EscapeCharacter, "{", this.OpeningIdentifier)
-                .ReplaceIdentifierUnlessEscaped(this.EscapeCharacter, "}", this.ClosingIdentifier)
-
-                .ReplaceIdentifierUnlessEscaped(this.EscapeCharacter, "[", this.OpeningIdentifier)
-                .ReplaceIdentifierUnlessEscaped(this.EscapeCharacter, "]", this.ClosingIdentifier);
+            return values.Select(x => wrapper.Wrap(x)).ToList();
         }
     }
 }

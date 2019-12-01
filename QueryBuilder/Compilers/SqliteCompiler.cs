@@ -7,11 +7,11 @@ namespace SqlKata.Compilers
     public class SqliteCompiler : Compiler
     {
         public override string EngineCode { get; } = EngineCodes.Sqlite;
-        protected override string parameterPlaceholder { get; set; } = "?";
-        protected override string parameterPrefix { get; set; } = "@p";
-        protected override string OpeningIdentifier { get; set; } = "\"";
-        protected override string ClosingIdentifier { get; set; } = "\"";
-        protected override string LastId { get; set; } = "select last_insert_rowid() as id";
+
+        public SqliteCompiler() : base()
+        {
+            wrapper = new SqlLiteWrap();
+        }
 
         public override string CompileTrue()
         {
@@ -39,7 +39,7 @@ namespace SqlKata.Compilers
 
         protected override string CompileBasicDateCondition(SqlResult context, BasicDateCondition condition)
         {
-            string column = Wrap(condition.Column);
+            string column = wrapper.Wrap(condition.Column);
             string value = Parameter(context, condition.Value);
 
             Dictionary<string,string> formatMap = new Dictionary<string, string> {

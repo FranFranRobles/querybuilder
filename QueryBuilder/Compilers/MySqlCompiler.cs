@@ -3,10 +3,11 @@ namespace SqlKata.Compilers
 {
     public class MySqlCompiler : Compiler
     {
+        const string MAX_MySQL_LIMIT = "18446744073709551615";
         public MySqlCompiler()
         {
-            OpeningIdentifier = ClosingIdentifier = "`";
-            LastId = "SELECT last_insert_id() as Id";
+            wrapper.OpeningIdentifier = wrapper.ClosingIdentifier = "`";
+            wrapper.LastId = "SELECT last_insert_id() as Id";
         }
 
         public override string EngineCode { get; } = EngineCodes.MySql;
@@ -35,7 +36,7 @@ namespace SqlKata.Compilers
                 // to avoid this error.
 
                 context.Bindings.Add(offset);
-                return "LIMIT 18446744073709551615 OFFSET ?";
+                return "LIMIT " + MAX_MySQL_LIMIT + " OFFSET ?";
             }
 
             // We have both values

@@ -23,7 +23,6 @@ namespace SqlKata.Compilers
             }
 
             namesOfPreviousCtes = new HashSet<string>();
-
             orderedCteList = findInternal(query);
 
             namesOfPreviousCtes.Clear();
