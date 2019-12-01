@@ -148,7 +148,12 @@ namespace SqlKata
         /// <returns>a new query with a limit value added</returns>
         public Query Limit(long value)
         {
-            throw new NotImplementedException();
+            LimitClause newClause = new LimitClause
+            {
+                LongLimit = value
+            };
+
+            return AddOrReplaceComponent("limit", newClause);
         }
 
         public Query Offset(int value)

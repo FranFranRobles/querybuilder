@@ -39,7 +39,7 @@ namespace SqlKata.Tests.PostgreSql
             SqlResult context = new SqlResult { Query = query };
 
             Assert.Equal("LIMIT ?", compiler.CompileLimit(context));
-            Assert.Equal(limit, context.Bindings[0]);
+            Assert.Equal(10, context.Bindings[0]);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace SqlKata.Tests.PostgreSql
             SqlResult context = new SqlResult { Query = query };
 
             Assert.Equal("LIMIT ? OFFSET ?", compiler.CompileLimit(context));
-            Assert.Equal(limit, context.Bindings[0]);
+            Assert.Equal(5, context.Bindings[0]);
             Assert.Equal(20, context.Bindings[1]);
             Assert.Equal(2, context.Bindings.Count);
         }

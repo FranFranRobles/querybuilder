@@ -58,7 +58,7 @@ namespace SqlKata.Tests.Oracle
 
             // Assert:
             Assert.Matches($"SELECT \\* FROM \\({SqlPlaceholder}\\) WHERE ROWNUM <= ?", context.RawSql);
-            Assert.Equal(limit, context.Bindings[0]);
+            Assert.Equal(10, context.Bindings[0]);
             Assert.Single(context.Bindings);
         }
 

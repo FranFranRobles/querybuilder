@@ -335,9 +335,9 @@ namespace SqlKata.Tests
         [Fact]
         public void CompilerSpecificLongLimit()
         {
-            long limit = 5;
+            long limit = 10;
             Query query = new Query("mytable")
-                .ForSqlServer(q => q.Limit(limit))
+                .ForSqlServer(q => q.Limit(5))
                 .ForPostgreSql(q => q.Limit(limit));
 
             string[] engines = new[] { EngineCodes.SqlServer, EngineCodes.MySql, EngineCodes.PostgreSql };
