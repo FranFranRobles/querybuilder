@@ -2,9 +2,14 @@ namespace SqlKata
 {
     public class LimitClause : AbstractClause
     {
-        private int _limit;
+        private long _limit;
         
         public int Limit
+        {
+            get => System.Convert.ToInt32(_limit);
+            set => _limit = value > 0 ? value : _limit;
+        }
+        public long LongLimit
         {
             get => _limit;
             set => _limit = value > 0 ? value : _limit;

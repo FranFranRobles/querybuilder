@@ -34,6 +34,18 @@ namespace SqlKata.Tests.SqlServer
             Assert.Equal(0, context.Bindings[0]);
             Assert.Equal(10, context.Bindings[1]);
         }
+        [Fact]
+        public void LongLimitOnly()
+        {
+            long limit = 10;
+            Query query = new Query("Table").Limit(limit);
+            SqlResult context = new SqlResult { Query = query };
+
+            Assert.EndsWith("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", compiler.CompileLimit(context));
+            Assert.Equal(2, context.Bindings.Count);
+            Assert.Equal(0, context.Bindings[0]);
+            Assert.Equal(10, context.Bindings[1]);
+        }
 
         [Fact]
         public void OffsetOnly()
@@ -52,6 +64,19 @@ namespace SqlKata.Tests.SqlServer
         {
             Query query = new Query("Table").Limit(5).Offset(20);
             SqlResult context = new SqlResult {Query = query};
+
+            Assert.EndsWith("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", compiler.CompileLimit(context));
+
+            Assert.Equal(2, context.Bindings.Count);
+            Assert.Equal(20, context.Bindings[0]);
+            Assert.Equal(5, context.Bindings[1]);
+        }
+        [Fact]
+        public void LongLimitAndOffset()
+        {
+            long limit = 5;
+            Query query = new Query("Table").Limit(limit).Offset(20);
+            SqlResult context = new SqlResult { Query = query };
 
             Assert.EndsWith("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", compiler.CompileLimit(context));
 

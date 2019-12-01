@@ -40,6 +40,20 @@ namespace SqlKata.Tests.Oracle
             Assert.Equal(0, context.Bindings[0]);
             Assert.Equal(10, context.Bindings[1]);
         }
+        [Fact]
+        public void LongLimitOnly()
+        {
+            long limit = 10;
+            // Arrange:
+            var query = new Query(TableName).Limit(limit);
+            var context = new SqlResult { Query = query, RawSql = SqlPlaceholder };
+
+            //  Act & Assert:
+            Assert.EndsWith("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", compiler.CompileLimit(context));
+            Assert.Equal(2, context.Bindings.Count);
+            Assert.Equal(0, context.Bindings[0]);
+            Assert.Equal(10, context.Bindings[1]);
+        }
 
         [Fact]
         public void OffsetOnly()
@@ -60,6 +74,23 @@ namespace SqlKata.Tests.Oracle
         {
             // Arrange:
             var query = new Query(TableName).Limit(5).Offset(20);
+            var context = new SqlResult { Query = query, RawSql = SqlPlaceholder };
+
+            // Act & Assert:
+            Assert.EndsWith("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", compiler.CompileLimit(context));
+
+            Assert.Equal(2, context.Bindings.Count);
+            Assert.Equal(20, context.Bindings[0]);
+            Assert.Equal(5, context.Bindings[1]);
+
+            compiler.CompileLimit(context);
+        }
+        [Fact]
+        public void LongLimitAndOffset()
+        {
+            long limit = 5;
+            // Arrange:
+            var query = new Query(TableName).Limit(limit).Offset(20);
             var context = new SqlResult { Query = query, RawSql = SqlPlaceholder };
 
             // Act & Assert:
