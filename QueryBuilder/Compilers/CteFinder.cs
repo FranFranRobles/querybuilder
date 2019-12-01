@@ -17,8 +17,10 @@ namespace SqlKata.Compilers
 
         public List<AbstractFrom> Find()
         {
-            if (orderedCteList != null)
+            if (orderedCteList  != null)
+            {
                 return orderedCteList;
+            }
 
             namesOfPreviousCtes = new HashSet<string>();
             orderedCteList = findInternal(query);

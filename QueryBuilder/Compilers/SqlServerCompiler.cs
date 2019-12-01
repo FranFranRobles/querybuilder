@@ -76,7 +76,7 @@ namespace SqlKata.Compilers
             // SQL Server system similar to the limit keywords available in MySQL.
             int limit = context.Query.GetLimit(EngineCode);
             int offset = context.Query.GetOffset(EngineCode);
-
+            
             if (limit > 0 && offset == 0)
             {
                 // top bindings should be inserted first
@@ -85,12 +85,17 @@ namespace SqlKata.Compilers
                 context.Query.ClearComponent("limit");
 
                 // handle distinct
+                string selectStr = string.Empty;
                 if (compiled.IndexOf("SELECT DISTINCT") == 0)
                 {
-                    return "SELECT DISTINCT TOP (?)" + compiled.Substring(15);
+                    selectStr =  "SELECT DISTINCT TOP (?)" + compiled.Substring(15);
+                }
+                else
+                {
+                    selectStr = "SELECT TOP (?)" + compiled.Substring(6); ;
                 }
 
-                return "SELECT TOP (?)" + compiled.Substring(6);
+                return selectStr;
             }
 
             return compiled;
@@ -114,6 +119,8 @@ namespace SqlKata.Compilers
             }
 
             string safeOrder = "";
+            string safeOrderOffSet = string.Empty;
+
             if (!context.Query.HasComponent("order"))
             {
                 safeOrder = "ORDER BY (SELECT 0) ";
@@ -122,13 +129,16 @@ namespace SqlKata.Compilers
             if (limit == 0)
             {
                 context.Bindings.Add(offset);
-                return $"{safeOrder}OFFSET ? ROWS";
+                safeOrderOffSet = $"{safeOrder}OFFSET ? ROWS";
+            }
+            else
+            {
+                context.Bindings.Add(offset);
+                context.Bindings.Add(limit);
+                safeOrderOffSet = $"{safeOrder}OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"; 
             }
 
-            context.Bindings.Add(offset);
-            context.Bindings.Add(limit);
-
-            return $"{safeOrder}OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            return safeOrderOffSet;
         }
 
         public override string CompileRandom(string seed)
@@ -166,7 +176,7 @@ namespace SqlKata.Compilers
 
             if (condition.IsNot)
             {
-                return $"NOT ({sql})";
+                sql = $"NOT ({sql})";
             }
 
             return sql;
