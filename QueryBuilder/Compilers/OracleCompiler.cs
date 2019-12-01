@@ -9,9 +9,9 @@ namespace SqlKata.Compilers
     {
         public OracleCompiler()
         {
-            ColumnAsKeyword = "";
-            TableAsKeyword = "";
-            parameterPrefix = ":p";
+            wrapper.ColumnAsKeyword = "";
+            wrapper.TableAsKeyword = "";
+            wrapper.parameterPrefix = ":p";
         }
 
         public override string EngineCode { get; } = EngineCodes.Oracle;
@@ -100,7 +100,7 @@ namespace SqlKata.Compilers
         protected override string CompileBasicDateCondition(SqlResult context, BasicDateCondition condition)
         {
 
-            string column = Wrap(condition.Column);
+            string column = wrapper.Wrap(condition.Column);
             string value = Parameter(context, condition.Value);
 
             string sql = "";

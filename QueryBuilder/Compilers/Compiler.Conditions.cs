@@ -60,7 +60,7 @@ namespace SqlKata.Compilers
         protected virtual string CompileRawCondition(SqlResult context, RawCondition x)
         {
             context.Bindings.AddRange(x.Bindings);
-            return WrapIdentifiers(x.Expression);
+            return wrapper.WrapIdentifiers(x.Expression);
         }
 
         protected virtual string CompileQueryCondition<T>(SqlResult context, QueryCondition<T> x) where T : BaseQuery<T>
@@ -69,7 +69,7 @@ namespace SqlKata.Compilers
 
             context.Bindings.AddRange(subContext.Bindings);
 
-            return Wrap(x.Column) + " " + checkOperator(x.Operator) + " (" + subContext.RawSql + ")";
+            return wrapper.Wrap(x.Column) + " " + checkOperator(x.Operator) + " (" + subContext.RawSql + ")";
         }
 
         protected virtual string CompileSubQueryCondition<T>(SqlResult context, SubQueryCondition<T> x) where T : BaseQuery<T>
@@ -83,7 +83,7 @@ namespace SqlKata.Compilers
 
         protected virtual string CompileBasicCondition(SqlResult context, BasicCondition x)
         {
-            string sql = $"{Wrap(x.Column)} {checkOperator(x.Operator)} {Parameter(context, x.Value)}";
+            string sql = $"{wrapper.Wrap(x.Column)} {checkOperator(x.Operator)} {Parameter(context, x.Value)}";
 
             if (x.IsNot)
             {
@@ -101,7 +101,7 @@ namespace SqlKata.Compilers
             }
 
             string[] basicStringConditions = new[] { "starts", "ends", "contains", "like" };
-            string column = Wrap(x.Column);
+            string column = wrapper.Wrap(x.Column);
             string method = x.Operator;
 
             if (basicStringConditions.Contains(x.Operator))
@@ -157,7 +157,7 @@ namespace SqlKata.Compilers
 
         protected virtual string CompileBasicDateCondition(SqlResult context, BasicDateCondition x)
         {
-            string column = Wrap(x.Column);
+            string column = wrapper.Wrap(x.Column);
             string op = checkOperator(x.Operator);
 
             string sql = $"{x.Part.ToUpperInvariant()}({column}) {op} {Parameter(context, x.Value)}";
@@ -182,7 +182,7 @@ namespace SqlKata.Compilers
         protected string CompileTwoColumnsCondition(SqlResult context, TwoColumnsCondition clause)
         {
             string op = clause.IsNot ? "NOT " : "";
-            return $"{op}{Wrap(clause.First)} {checkOperator(clause.Operator)} {Wrap(clause.Second)}";
+            return $"{op}{wrapper.Wrap(clause.First)} {checkOperator(clause.Operator)} {wrapper.Wrap(clause.Second)}";
         }
 
         protected virtual string CompileBetweenCondition<T>(SqlResult context, BetweenCondition<T> item)
@@ -191,12 +191,12 @@ namespace SqlKata.Compilers
             string lower = Parameter(context, item.Lower);
             string higher = Parameter(context, item.Higher);
 
-            return Wrap(item.Column) + $" {between} {lower} AND {higher}";
+            return wrapper.Wrap(item.Column) + $" {between} {lower} AND {higher}";
         }
 
         protected virtual string CompileInCondition<T>(SqlResult context, InCondition<T> item)
         {
-            string column = Wrap(item.Column);
+            string column = wrapper.Wrap(item.Column);
 
             if (!item.Values.Any())
             {
@@ -219,18 +219,18 @@ namespace SqlKata.Compilers
 
             string inOperator = item.IsNot ? "NOT IN" : "IN";
 
-            return Wrap(item.Column) + $" {inOperator} ({subContext.RawSql})";
+            return wrapper.Wrap(item.Column) + $" {inOperator} ({subContext.RawSql})";
         }
 
         protected virtual string CompileNullCondition(SqlResult context, NullCondition item)
         {
             string op = item.IsNot ? "IS NOT NULL" : "IS NULL";
-            return Wrap(item.Column) + " " + op;
+            return wrapper.Wrap(item.Column) + " " + op;
         }
 
         protected virtual string CompileBooleanCondition(SqlResult context, BooleanCondition item)
         {
-            string column = Wrap(item.Column);
+            string column = wrapper.Wrap(item.Column);
             string value = item.Value ? CompileTrue() : CompileFalse();
 
             string op = item.IsNot ? "!=" : "=";

@@ -8,6 +8,7 @@ namespace SqlKata.Compilers
     {
         public FirebirdCompiler()
         {
+            wrapper = new FireBirdWrap();
         }
 
         public override string EngineCode { get; } = EngineCodes.Firebird;
@@ -74,7 +75,7 @@ namespace SqlKata.Compilers
 
         protected override string CompileBasicDateCondition(SqlResult context, BasicDateCondition condition)
         {
-            string column = Wrap(condition.Column);
+            string column = wrapper.Wrap(condition.Column);
 
             string left;
 
@@ -99,11 +100,6 @@ namespace SqlKata.Compilers
             }
 
             return sql;
-        }
-
-        public override string WrapValue(string value)
-        {
-            return base.WrapValue(value).ToUpperInvariant();
         }
 
         public override string CompileTrue()
