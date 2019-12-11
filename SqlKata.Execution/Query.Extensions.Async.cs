@@ -72,17 +72,18 @@ namespace SqlKata.Execution
 
         public static async Task<int> InsertAsync(
             this Query query,
-            IReadOnlyDictionary<string, object> values
+            IReadOnlyDictionary<string, object> values,
+            CancellationToken cancellationToken = default
         )
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsInsert(values));
+                .ExecuteAsync(query.AsInsert(values), cancellationToken: cancellationToken);
         }
 
         public static async Task<int> InsertAsync(this Query query, object data)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsInsert(data));
+                .ExecuteAsync(query.AsInsert(data), default);
         }
 
         public static async Task<T> InsertGetIdAsync<T>(this Query query, object data)
@@ -100,25 +101,25 @@ namespace SqlKata.Execution
         )
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsInsert(columns, fromQuery));
+                .ExecuteAsync(query.AsInsert(columns, fromQuery), default);
         }
 
         public static async Task<int> UpdateAsync(this Query query, IReadOnlyDictionary<string, object> values)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsUpdate(values));
+                .ExecuteAsync(query.AsUpdate(values), default);
         }
 
         public static async Task<int> UpdateAsync(this Query query, object data)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsUpdate(data));
+                .ExecuteAsync(query.AsUpdate(data), default);
         }
 
         public static async Task<int> DeleteAsync(this Query query)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsDelete());
+                .ExecuteAsync(query.AsDelete(), default);
         }
 
     }

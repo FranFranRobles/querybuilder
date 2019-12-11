@@ -26,7 +26,7 @@ namespace SqlKata.Execution
 
             if (cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("Cancelling per user request /n Now returning old query result...");
+                Console.WriteLine("Cancelling per user request \n Now returning old query result...");
                 return result;
             }
 
@@ -85,10 +85,16 @@ namespace SqlKata.Execution
         public static async Task<int> ExecuteAsync(
             this QueryFactory db,
             Query query,
+            CancellationToken cancellationToken,
             IDbTransaction transaction = null,
             CommandType? commandType = null
         )
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request \n Now terminating Asynchronous call...");
+                return 0;
+            }
             var compiled = db.Compile(query);
 
             return await db.Connection.ExecuteAsync(
@@ -210,7 +216,7 @@ namespace SqlKata.Execution
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("Cancelling per user request /n Now returning old query result...");
+                Console.WriteLine("Cancelling per user request \n Now terminating PaginateAsync call...");
                 PaginationResult<T> result = new PaginationResult<T> { Query = query, Page = page, PerPage = perPage, Count = 0L, List = Enumerable.Empty<T>() };
                 return result;
             }
