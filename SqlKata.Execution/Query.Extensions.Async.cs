@@ -80,10 +80,10 @@ namespace SqlKata.Execution
                 .ExecuteAsync(query.AsInsert(values), cancellationToken: cancellationToken);
         }
 
-        public static async Task<int> InsertAsync(this Query query, object data)
+        public static async Task<int> InsertAsync(this Query query, object data, CancellationToken cancellationToken = default)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsInsert(data), default);
+                .ExecuteAsync(query.AsInsert(data), cancellationToken: cancellationToken);
         }
 
         public static async Task<T> InsertGetIdAsync<T>(this Query query, object data)
