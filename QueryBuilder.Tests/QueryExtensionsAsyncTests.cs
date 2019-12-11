@@ -1,10 +1,4 @@
-﻿using Moq;
-using SqlKata.Execution;
-using SqlKata.Tests.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
+﻿using SqlKata.Tests.Infrastructure;
 using Xunit;
 
 namespace SqlKata.Tests

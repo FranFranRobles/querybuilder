@@ -12,9 +12,9 @@ namespace SqlKata.Execution
             return await QueryHelper.CreateQueryFactory(query).GetAsync<T>(query, cancellationToken);
         }
 
-        public static async Task<IEnumerable<dynamic>> GetAsync(this Query query)
+        public static async Task<IEnumerable<dynamic>> GetAsync(this Query query, CancellationToken cancellationToken = default)
         {
-            return await GetAsync<dynamic>(query);
+            return await GetAsync<dynamic>(query, cancellationToken);
         }
 
         public static async Task<T> FirstOrDefaultAsync<T>(this Query query)
