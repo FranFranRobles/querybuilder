@@ -304,6 +304,14 @@ namespace SqlKata.Compilers
             return context;
         }
 
+        private string InsertPostgresArray(int colCount, string values)
+        {
+            string array = string.Empty;
+
+
+            return array;
+        }
+
         private SqlResult InsertSqlClause(SqlResult context, string table, InsertClause insertClause)
         {
             string columns = string.Join(", ", WrapArray(insertClause.Columns));

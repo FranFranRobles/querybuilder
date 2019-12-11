@@ -37,5 +37,6 @@ namespace SqlKata.Compilers
 
             return sql;
         }
+
     }
 }

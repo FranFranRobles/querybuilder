@@ -59,5 +59,30 @@ namespace SqlKata
             return this;
         }
 
+        public Query AsUpdate(IEnumerable<string> columns)
+        {
+
+            if ((columns?.Count() ?? 0) == 0 )
+            {
+                throw new InvalidOperationException("Columns and Values cannot be null or empty");
+            }
+
+            if (columns.Count() != values.Count())
+            {
+                throw new InvalidOperationException("Columns count should be equal to Values count");
+            }
+
+            Method = "update";
+
+            ClearComponent("update").AddComponent("update", new InsertClause
+            {
+                Columns = columns.ToList(),
+                Values = values.ToList()
+            });
+
+            return this;
+        }
+
+
     }
 }

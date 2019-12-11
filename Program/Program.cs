@@ -43,7 +43,7 @@ namespace Program
 
             Console.WriteLine($"last id is: {id}");
             Console.WriteLine($"last id2 is: {id2.First()}");
-
+            
         }
 
         private static void log(Compiler compiler, Query query)

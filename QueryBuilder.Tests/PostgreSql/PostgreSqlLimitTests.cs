@@ -17,7 +17,7 @@ namespace SqlKata.Tests.PostgreSql
         public void WithNoLimitNorOffset()
         {
             Query query = new Query("Table");
-            SqlResult context = new SqlResult { Query = query };
+            SqlResult context = compiler.Compile(query);
 
             Assert.Null(compiler.CompileLimit(context));
         }
