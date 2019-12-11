@@ -253,10 +253,10 @@ namespace SqlKata.Execution
             this QueryFactory db,
             Query query,
             int chunkSize,
-            Func<IEnumerable<T>, int, bool> func
-        )
+            Func<IEnumerable<T>, int, bool> func,
+            CancellationToken cancellationToken)
         {
-            var result = await db.PaginateAsync<T>(query, 1, default, chunkSize);
+            var result = await db.PaginateAsync<T>(query, 1, cancellationToken, chunkSize);
 
             if (!func(result.List, 1))
             {
