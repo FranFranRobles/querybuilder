@@ -97,11 +97,12 @@ namespace SqlKata.Execution
         public static async Task<int> InsertAsync(
             this Query query,
             IEnumerable<string> columns,
-            Query fromQuery
+            Query fromQuery,
+            CancellationToken cancellationToken = default
         )
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsInsert(columns, fromQuery), default);
+                .ExecuteAsync(query.AsInsert(columns, fromQuery), cancellationToken: cancellationToken);
         }
 
         public static async Task<int> UpdateAsync(this Query query, IReadOnlyDictionary<string, object> values)
