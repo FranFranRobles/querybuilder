@@ -117,11 +117,10 @@ namespace SqlKata.Execution
                 .ExecuteAsync(query.AsUpdate(data), cancellationToken: cancellationToken);
         }
 
-        public static async Task<int> DeleteAsync(this Query query)
+        public static async Task<int> DeleteAsync(this Query query, CancellationToken cancellationToken = default)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsDelete(), default);
+                .ExecuteAsync(query.AsDelete(), cancellationToken: cancellationToken);
         }
-
     }
 }
