@@ -105,10 +105,10 @@ namespace SqlKata.Execution
                 .ExecuteAsync(query.AsInsert(columns, fromQuery), cancellationToken: cancellationToken);
         }
 
-        public static async Task<int> UpdateAsync(this Query query, IReadOnlyDictionary<string, object> values)
+        public static async Task<int> UpdateAsync(this Query query, IReadOnlyDictionary<string, object> values, CancellationToken cancellationToken = default)
         {
             return await QueryHelper.CreateQueryFactory(query)
-                .ExecuteAsync(query.AsUpdate(values), default);
+                .ExecuteAsync(query.AsUpdate(values), cancellationToken: cancellationToken);
         }
 
         public static async Task<int> UpdateAsync(this Query query, object data)
