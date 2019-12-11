@@ -37,7 +37,7 @@ namespace SqlKata.Execution
 
         public static PaginationResult<T> Paginate<T>(this Query query, int page, int perPage = 25)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             return db.Paginate<T>(query, page, perPage);
         }
@@ -49,7 +49,7 @@ namespace SqlKata.Execution
 
         public static void Chunk<T>(this Query query, int chunkSize, Func<IEnumerable<T>, int, bool> func)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             db.Chunk<T>(query, chunkSize, func);
         }
@@ -61,7 +61,7 @@ namespace SqlKata.Execution
 
         public static void Chunk<T>(this Query query, int chunkSize, Action<IEnumerable<T>, int> action)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
             db.Chunk(query, chunkSize, action);
         }
@@ -97,9 +97,9 @@ namespace SqlKata.Execution
 
         public static T InsertGetId<T>(this Query query, object data)
         {
-            var db = QueryHelper.CreateQueryFactory(query);
+            QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
-            var row = db.First<InsertGetIdRow<T>>(query.AsInsert(data, true));
+            InsertGetIdRow<T> row = db.First<InsertGetIdRow<T>>(query.AsInsert(data, true));
 
             return row.Id;
         }
