@@ -37,11 +37,11 @@ namespace SqlKata.Execution
             return await FirstAsync<dynamic>(query, cancellationToken);
         }
 
-        public static async Task<PaginationResult<T>> PaginateAsync<T>(this Query query, int page, int perPage = 25)
+        public static async Task<PaginationResult<T>> PaginateAsync<T>(this Query query, int page, int perPage = 25, CancellationToken cancellationToken = default)
         {
             QueryFactory db = QueryHelper.CreateQueryFactory(query);
 
-            return await db.PaginateAsync<T>(query, page, perPage);
+            return await db.PaginateAsync<T>(query, page, cancellationToken, perPage);
         }
 
         public static async Task<PaginationResult<dynamic>> PaginateAsync(this Query query, int page, int perPage = 25)

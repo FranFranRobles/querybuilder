@@ -24,7 +24,7 @@ namespace SqlKata.Execution
                 commandTimeout: db.QueryTimeout
             )).ToList();
 
-            if(cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested)
             {
                 Console.WriteLine("Cancelling per user request /n Now returning old query result...");
                 return result;
@@ -206,8 +206,14 @@ namespace SqlKata.Execution
         #endregion
 
         #region pagination
-        public static async Task<PaginationResult<T>> PaginateAsync<T>(this QueryFactory db, Query query, int page, int perPage = 25)
+        public static async Task<PaginationResult<T>> PaginateAsync<T>(this QueryFactory db, Query query, int page, CancellationToken cancellationToken, int perPage = 25)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request /n Now returning old query result...");
+                PaginationResult<T> result = new PaginationResult<T> { Query = query, Page = page, PerPage = perPage, Count = 0L, List = Enumerable.Empty<T>() };
+                return result;
+            }
 
             if (page < 1)
             {
@@ -250,7 +256,7 @@ namespace SqlKata.Execution
             Func<IEnumerable<T>, int, bool> func
         )
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            var result = await db.PaginateAsync<T>(query, 1, default, chunkSize);
 
             if (!func(result.List, 1))
             {
@@ -276,7 +282,7 @@ namespace SqlKata.Execution
             int> action
         )
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            var result = await db.PaginateAsync<T>(query, 1, default, chunkSize);
 
             action(result.List, 1);
 
