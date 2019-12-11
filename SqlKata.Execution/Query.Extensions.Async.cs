@@ -44,9 +44,9 @@ namespace SqlKata.Execution
             return await db.PaginateAsync<T>(query, page, cancellationToken, perPage);
         }
 
-        public static async Task<PaginationResult<dynamic>> PaginateAsync(this Query query, int page, int perPage = 25)
+        public static async Task<PaginationResult<dynamic>> PaginateAsync(this Query query, int page, int perPage = 25, CancellationToken cancellationToken = default)
         {
-            return await PaginateAsync<dynamic>(query, page, perPage);
+            return await PaginateAsync<dynamic>(query, page, perPage, cancellationToken);
         }
 
         public static async Task ChunkAsync<T>(this Query query, int chunkSize, Func<IEnumerable<T>, int, bool> func)
