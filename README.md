@@ -41,9 +41,9 @@ PM> Install-Package SqlKata
 ### Setup Connection
 
 ```cs
-var connection = new SqlConnection("...");
-var compiler = new SqlCompiler();
-var db = new QueryFactory(connection, compiler);
+SqlConnection connection = new SqlConnection("...");
+SqlCompiler compiler = new SqlCompiler();
+QueryFactory db = new QueryFactory(connection, compiler);
 ```
 
 ### Retrieve all records
@@ -53,22 +53,22 @@ var books = db.Query("Books").Get();
 
 ### Retrieve published books only
 ```cs
-var books = db.Query("Books").WhereTrue("IsPublished").Get();
+IEnumerable<dynamic> books = db.Query("Books").WhereTrue("IsPublished").Get();
 ```
 
 ### Retrieve one book
 ```cs
-var introToSql = db.Query("Books").Where("Id", 145).Where("Lang", "en").First();
+IEnumerable<dynamic> introToSql = db.Query("Books").Where("Id", 145).Where("Lang", "en").First();
 ```
 
 ### Retrieve recent books: last 10
 ```cs
-var recent = db.Query("Books").OrderByDesc("PublishedAt").Limit(10).Get();
+IEnumerable<dynamic> recent = db.Query("Books").OrderByDesc("PublishedAt").Limit(10).Get();
 ```
 
 ### Include Author information
 ```cs
-var books = db.Query("Books")
+IEnumerable<dynamic> books = db.Query("Books")
     .Include(db.Query("Authors")) // Assumes that the Books table have a `AuthorId` column
     .Get();
 ```
@@ -89,7 +89,7 @@ This will include the property "Author" on each "Book"
 ### Join with authors table
 
 ```cs
-var books = db.Query("Books")
+IEnumerable<dynamic> books = db.Query("Books")
     .Join("Authors", "Authors.Id", "Books.AuthorId")
     .Select("Books.*", "Authors.Name as AuthorName")
     .Get();
@@ -112,7 +112,7 @@ var books = db.Query("Books")
 ### Pagination
 
 ```cs
-var page1 = db.Query("Books").Paginate(10);
+PaginationResult<dynamic>  page1 = db.Query("Books").Paginate(10);
 
 foreach(var book in page1.List)
 {
@@ -121,7 +121,7 @@ foreach(var book in page1.List)
 
 ...
 
-var page2 = page1.Next();
+PaginationResult<dynamic> page2 = page1.Next();
 ```
 
 ### Insert
