@@ -6,6 +6,7 @@ using Dapper;
 using System.Threading.Tasks;
 using System.Dynamic;
 using Humanizer;
+using System.Threading;
 
 namespace SqlKata.Execution
 {
@@ -13,7 +14,7 @@ namespace SqlKata.Execution
     {
         #region Dapper
 
-        public static async Task<IEnumerable<T>> GetAsync<T>(this QueryFactory db, Query query)
+        public static async Task<IEnumerable<T>> GetAsync<T>(this QueryFactory db, Query query, CancellationToken cancellationToken)
         {
             var compiled = db.Compile(query);
 
@@ -22,6 +23,12 @@ namespace SqlKata.Execution
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
             )).ToList();
+
+            if(cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request /n Now returning old query result...");
+                return result;
+            }
 
             result = (await handleIncludesAsync(query, result)).ToList();
 
@@ -43,12 +50,12 @@ namespace SqlKata.Execution
 
         public static async Task<IEnumerable<dynamic>> GetAsync(this QueryFactory db, Query query)
         {
-            return await GetAsync<dynamic>(db, query);
+            return await GetAsync<dynamic>(db, query, default);
         }
 
         public static async Task<T> FirstOrDefaultAsync<T>(this QueryFactory db, Query query)
         {
-            var list = await GetAsync<T>(db, query.Limit(1));
+            var list = await GetAsync<T>(db, query.Limit(1), default);
 
             return list.ElementAtOrDefault(0);
         }

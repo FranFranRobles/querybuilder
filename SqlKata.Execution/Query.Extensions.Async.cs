@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SqlKata.Execution
 {
     public static class QueryExtensionsAsync
     {
-        public static async Task<IEnumerable<T>> GetAsync<T>(this Query query)
+        public static async Task<IEnumerable<T>> GetAsync<T>(this Query query, CancellationToken cancellationToken = default)
         {
-            return await QueryHelper.CreateQueryFactory(query).GetAsync<T>(query);
+            return await QueryHelper.CreateQueryFactory(query).GetAsync<T>(query, cancellationToken);
         }
 
         public static async Task<IEnumerable<dynamic>> GetAsync(this Query query)
