@@ -348,7 +348,7 @@ namespace SqlKata.Execution
             if (include.IsMany)
             {
                 QueryFactoryHelper.TryFetchingForeignKey(query, include);
-                List<string> localIds = QueryFactoryHelper.GetLocalIDs(dynamicResult, include);
+                List<object> localIds = QueryFactoryHelper.GetLocalIDs(dynamicResult, include);
 
                 if (localIds.Any())
                 {
@@ -372,7 +372,7 @@ namespace SqlKata.Execution
         }
 
 
-        private static async Task<Dictionary<string, List<Dictionary<string, object>>>> getEmbeddedIncludesAsync(Include include, List<string> localIds)
+        private static async Task<Dictionary<string, List<Dictionary<string, object>>>> getEmbeddedIncludesAsync(Include include, List<object> localIds)
         {
             return (await include.Query.WhereIn(include.ForeignKey, localIds).GetAsync())
                 .Cast<IDictionary<string, object>>()

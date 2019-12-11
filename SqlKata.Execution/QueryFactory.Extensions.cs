@@ -320,7 +320,7 @@ namespace SqlKata.Execution
             if (include.IsMany)
             {
                 QueryFactoryHelper.TryFetchingForeignKey(query, include);
-                List<string> localIds = QueryFactoryHelper.GetLocalIDs(dynamicResult, include);
+                List<object> localIds = QueryFactoryHelper.GetLocalIDs(dynamicResult, include);
 
                 if (localIds.Any())
                 {
@@ -343,7 +343,7 @@ namespace SqlKata.Execution
                 .ToDictionary(x => x[include.LocalKey].ToString());
         }
 
-        private static Dictionary<string, List<Dictionary<string, object>>> getEmbeddedIncludesSync(Include include, List<string> localIds)
+        private static Dictionary<string, List<Dictionary<string, object>>> getEmbeddedIncludesSync(Include include, List<object> localIds)
         {
             return include.Query.WhereIn(include.ForeignKey, localIds).Get()
                 .Cast<IDictionary<string, object>>()

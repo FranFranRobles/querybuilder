@@ -41,10 +41,10 @@ namespace SqlKata.Execution
                 include.ForeignKey = table.Singularize(false) + "Id";
             }
         }
-        public static List<string> GetLocalIDs(List<Dictionary<string, object>> dynamicResult, Include include)
+        public static List<object> GetLocalIDs(List<Dictionary<string, object>> dynamicResult, Include include)
         {
             return dynamicResult.Where(x => x[include.LocalKey] != null)
-            .Select(x => x[include.LocalKey].ToString())
+            .Select(x => x[include.LocalKey])
             .ToList();
         }
     }
