@@ -65,9 +65,9 @@ namespace SqlKata.Execution
         }
 
 
-        public static async Task ChunkAsync(this Query query, int chunkSize, Action<IEnumerable<dynamic>, int> action)
+        public static async Task ChunkAsync(this Query query, int chunkSize, Action<IEnumerable<dynamic>, int> action, CancellationToken cancellationToken = default)
         {
-            await ChunkAsync<dynamic>(query, chunkSize, action);
+            await ChunkAsync<dynamic>(query, chunkSize, action, cancellationToken);
         }
 
         public static async Task<int> InsertAsync(
