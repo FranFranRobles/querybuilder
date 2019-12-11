@@ -27,9 +27,9 @@ namespace SqlKata.Execution
             return await FirstOrDefaultAsync<dynamic>(query, cancellationToken);
         }
 
-        public static async Task<T> FirstAsync<T>(this Query query)
+        public static async Task<T> FirstAsync<T>(this Query query, CancellationToken cancellationToken = default)
         {
-            return await QueryHelper.CreateQueryFactory(query).FirstAsync<T>(query);
+            return await QueryHelper.CreateQueryFactory(query).FirstAsync<T>(query, cancellationToken);
         }
 
         public static async Task<dynamic> FirstAsync(this Query query)
@@ -88,7 +88,7 @@ namespace SqlKata.Execution
         public static async Task<T> InsertGetIdAsync<T>(this Query query, object data)
         {
             InsertGetIdRow<T> row = await QueryHelper.CreateQueryFactory(query)
-                .FirstAsync<InsertGetIdRow<T>>(query.AsInsert(data, true));
+                .FirstAsync<InsertGetIdRow<T>>(query.AsInsert(data, true), default);
 
             return row.Id;
         }

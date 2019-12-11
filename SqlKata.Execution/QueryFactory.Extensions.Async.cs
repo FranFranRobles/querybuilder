@@ -65,9 +65,9 @@ namespace SqlKata.Execution
             return await FirstOrDefaultAsync<dynamic>(db, query, default);
         }
 
-        public static async Task<T> FirstAsync<T>(this QueryFactory db, Query query)
+        public static async Task<T> FirstAsync<T>(this QueryFactory db, Query query, CancellationToken cancellationToken)
         {
-            var item = await FirstOrDefaultAsync<T>(db, query, default);
+            var item = await FirstOrDefaultAsync<T>(db, query, cancellationToken);
 
             if (item == null)
             {
@@ -79,7 +79,7 @@ namespace SqlKata.Execution
 
         public static async Task<dynamic> FirstAsync(this QueryFactory db, Query query)
         {
-            return await FirstAsync<dynamic>(db, query);
+            return await FirstAsync<dynamic>(db, query, default);
         }
 
         public static async Task<int> ExecuteAsync(
