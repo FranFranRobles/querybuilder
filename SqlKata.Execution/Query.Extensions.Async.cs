@@ -54,9 +54,9 @@ namespace SqlKata.Execution
             await QueryHelper.CreateQueryFactory(query).ChunkAsync<T>(query, chunkSize, func, cancellationToken);
         }
 
-        public static async Task ChunkAsync<T>(this Query query, int chunkSize, Action<IEnumerable<T>, int> action)
+        public static async Task ChunkAsync<T>(this Query query, int chunkSize, Action<IEnumerable<T>, int> action, CancellationToken cancellationToken = default)
         {
-            await QueryHelper.CreateQueryFactory(query).ChunkAsync<T>(query, chunkSize, action);
+            await QueryHelper.CreateQueryFactory(query).ChunkAsync<T>(query, chunkSize, action, cancellationToken);
         }
 
         public static async Task ChunkAsync(this Query query, int chunkSize, Func<IEnumerable<dynamic>, int, bool> func)

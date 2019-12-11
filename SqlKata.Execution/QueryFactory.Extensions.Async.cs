@@ -279,10 +279,10 @@ namespace SqlKata.Execution
             Query query,
             int chunkSize,
             Action<IEnumerable<T>,
-            int> action
-        )
+            int> action,
+            CancellationToken cancellationToken)
         {
-            var result = await db.PaginateAsync<T>(query, 1, default, chunkSize);
+            var result = await db.PaginateAsync<T>(query, 1, cancellationToken, chunkSize);
 
             action(result.List, 1);
 
