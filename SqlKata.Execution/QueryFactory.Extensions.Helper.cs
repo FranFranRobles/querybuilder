@@ -29,14 +29,14 @@ namespace SqlKata.Execution
                 // I will try to fetch the table name if provided and appending the Id as a convention
                 // Here am using Humanizer package to help getting the singular form of the table
 
-                var fromTable = query.GetOneComponent("from") as FromClause;
+                FromClause fromTable = query.GetOneComponent("from") as FromClause;
 
                 if (fromTable == null)
                 {
                     throw new InvalidOperationException($"Cannot guess the foreign key for the included relation '{include.Name}'");
                 }
 
-                var table = fromTable.Alias ?? fromTable.Table;
+                string table = fromTable.Alias ?? fromTable.Table;
 
                 include.ForeignKey = table.Singularize(false) + "Id";
             }

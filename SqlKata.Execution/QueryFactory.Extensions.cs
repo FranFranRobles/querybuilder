@@ -14,9 +14,9 @@ namespace SqlKata.Execution
 
         public static IEnumerable<T> Get<T>(this QueryFactory db, Query query)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
-            var result = db.Connection.Query<T>(
+            List<T> result = db.Connection.Query<T>(
                 compiled.Sql,
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
@@ -29,7 +29,7 @@ namespace SqlKata.Execution
 
         public static IEnumerable<IDictionary<string, object>> GetDictionary(this QueryFactory db, Query query)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
             return db.Connection.Query(compiled.Sql, compiled.NamedBindings, commandTimeout: db.QueryTimeout) as IEnumerable<IDictionary<string, object>>;
         }
@@ -41,7 +41,7 @@ namespace SqlKata.Execution
 
         public static T FirstOrDefault<T>(this QueryFactory db, Query query)
         {
-            var list = Get<T>(db, query.Limit(1));
+            IEnumerable<T> list = Get<T>(db, query.Limit(1));
 
             return list.ElementAtOrDefault(0);
         }
@@ -53,7 +53,7 @@ namespace SqlKata.Execution
 
         public static T First<T>(this QueryFactory db, Query query)
         {
-            var item = FirstOrDefault<T>(db, query);
+            T item = FirstOrDefault<T>(db, query);
 
             if (item == null)
             {
@@ -76,7 +76,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
             return db.Connection.Execute(
                 compiled.Sql,
@@ -89,7 +89,7 @@ namespace SqlKata.Execution
 
         public static T ExecuteScalar<T>(this QueryFactory db, Query query, IDbTransaction transaction = null, CommandType? commandType = null)
         {
-            var compiled = db.Compile(query.Limit(1));
+            SqlResult compiled = db.Compile(query.Limit(1));
 
             return db.Connection.ExecuteScalar<T>(
                 compiled.Sql,
@@ -107,7 +107,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compiler.Compile(queries);
+            SqlResult compiled = db.Compiler.Compile(queries);
 
             return db.Connection.QueryMultiple(
                 compiled.Sql,
@@ -127,7 +127,7 @@ namespace SqlKata.Execution
         )
         {
 
-            var multi = db.GetMultiple<T>(
+            SqlMapper.GridReader multi = db.GetMultiple<T>(
                 queries,
                 transaction,
                 commandType
@@ -135,7 +135,7 @@ namespace SqlKata.Execution
 
             using (multi)
             {
-                for (var i = 0; i < queries.Count(); i++)
+                for (int i = 0; i < queries.Count(); i++)
                 {
                     yield return multi.Read<T>();
                 }
@@ -197,7 +197,7 @@ namespace SqlKata.Execution
                 throw new ArgumentException("PerPage param should be greater than or equal to 1", nameof(perPage));
             }
 
-            var count = query.Clone().Count<long>();
+            long count = query.Clone().Count<long>();
 
             IEnumerable<T> list;
             if (count > 0)
@@ -222,7 +222,7 @@ namespace SqlKata.Execution
 
         public static void Chunk<T>(this QueryFactory db, Query query, int chunkSize, Func<IEnumerable<T>, int, bool> func)
         {
-            var result = db.Paginate<T>(query, 1, chunkSize);
+            PaginationResult<T> result = db.Paginate<T>(query, 1, chunkSize);
 
             if (!func(result.List, 1))
             {
@@ -242,7 +242,7 @@ namespace SqlKata.Execution
 
         public static void Chunk<T>(this QueryFactory db, Query query, int chunkSize, Action<IEnumerable<T>, int> action)
         {
-            var result = db.Paginate<T>(query, 1, chunkSize);
+            PaginationResult<T> result = db.Paginate<T>(query, 1, chunkSize);
 
             action(result.List, 1);
 
@@ -307,9 +307,9 @@ namespace SqlKata.Execution
             {
                 Dictionary<string, Dictionary<string, object>> related = getEmbeddedForeignKeysSync(include, foreignIds);
 
-                foreach (var item in dynamicResult)
+                foreach (Dictionary<string, object> item in dynamicResult)
                 {
-                    var foreignValue = item[include.ForeignKey].ToString();
+                    string foreignValue = item[include.ForeignKey].ToString();
                     item[include.Name] = related.ContainsKey(foreignValue) ? related[foreignValue] : null;
                 }
             }
@@ -326,9 +326,9 @@ namespace SqlKata.Execution
                 {
                     Dictionary<string, List<Dictionary<string, object>>> children = getEmbeddedIncludesSync(include, localIds);
 
-                    foreach (var item in dynamicResult)
+                    foreach (Dictionary<string, object> item in dynamicResult)
                     {
-                        var localValue = item[include.LocalKey].ToString();
+                        string localValue = item[include.LocalKey].ToString();
                         item[include.Name] = children.ContainsKey(localValue) ? children[localValue] : new List<Dictionary<string, object>>();
                     }
                 }

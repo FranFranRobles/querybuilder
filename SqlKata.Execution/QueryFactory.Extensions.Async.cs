@@ -6,6 +6,7 @@ using Dapper;
 using System.Threading.Tasks;
 using System.Dynamic;
 using Humanizer;
+using System.Threading;
 
 namespace SqlKata.Execution
 {
@@ -13,15 +14,21 @@ namespace SqlKata.Execution
     {
         #region Dapper
 
-        public static async Task<IEnumerable<T>> GetAsync<T>(this QueryFactory db, Query query)
+        public static async Task<IEnumerable<T>> GetAsync<T>(this QueryFactory db, Query query, CancellationToken cancellationToken)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
-            var result = (await db.Connection.QueryAsync<T>(
+            List<T> result = (await db.Connection.QueryAsync<T>(
                 compiled.Sql,
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
             )).ToList();
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request \n Now returning old query result...");
+                return result;
+            }
 
             result = (await handleIncludesAsync(query, result)).ToList();
 
@@ -30,9 +37,9 @@ namespace SqlKata.Execution
 
         public static async Task<IEnumerable<IDictionary<string, object>>> GetDictionaryAsync(this QueryFactory db, Query query)
         {
-            var compiled = db.Compile(query);
+            SqlResult compiled = db.Compile(query);
 
-            var result = await db.Connection.QueryAsync(
+            IEnumerable<dynamic> result = await db.Connection.QueryAsync(
                 compiled.Sql,
                 compiled.NamedBindings,
                 commandTimeout: db.QueryTimeout
@@ -43,24 +50,24 @@ namespace SqlKata.Execution
 
         public static async Task<IEnumerable<dynamic>> GetAsync(this QueryFactory db, Query query)
         {
-            return await GetAsync<dynamic>(db, query);
+            return await GetAsync<dynamic>(db, query, default);
         }
 
-        public static async Task<T> FirstOrDefaultAsync<T>(this QueryFactory db, Query query)
+        public static async Task<T> FirstOrDefaultAsync<T>(this QueryFactory db, Query query, CancellationToken cancellationToken)
         {
-            var list = await GetAsync<T>(db, query.Limit(1));
+            IEnumerable<T> list = await GetAsync<T>(db, query.Limit(1), cancellationToken);
 
             return list.ElementAtOrDefault(0);
         }
 
         public static async Task<dynamic> FirstOrDefaultAsync(this QueryFactory db, Query query)
         {
-            return await FirstOrDefaultAsync<dynamic>(db, query);
+            return await FirstOrDefaultAsync<dynamic>(db, query, default);
         }
 
-        public static async Task<T> FirstAsync<T>(this QueryFactory db, Query query)
+        public static async Task<T> FirstAsync<T>(this QueryFactory db, Query query, CancellationToken cancellationToken)
         {
-            var item = await FirstOrDefaultAsync<T>(db, query);
+            T item = await FirstOrDefaultAsync<T>(db, query, cancellationToken);
 
             if (item == null)
             {
@@ -72,17 +79,23 @@ namespace SqlKata.Execution
 
         public static async Task<dynamic> FirstAsync(this QueryFactory db, Query query)
         {
-            return await FirstAsync<dynamic>(db, query);
+            return await FirstAsync<dynamic>(db, query, default);
         }
 
         public static async Task<int> ExecuteAsync(
             this QueryFactory db,
             Query query,
+            CancellationToken cancellationToken,
             IDbTransaction transaction = null,
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compile(query);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request \n Now terminating Asynchronous call...");
+                return 0;
+            }
+            SqlResult compiled = db.Compile(query);
 
             return await db.Connection.ExecuteAsync(
                 compiled.Sql,
@@ -100,7 +113,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compile(query.Limit(1));
+            SqlResult compiled = db.Compile(query.Limit(1));
 
             return await db.Connection.ExecuteScalarAsync<T>(
                 compiled.Sql,
@@ -118,7 +131,7 @@ namespace SqlKata.Execution
             CommandType? commandType = null
         )
         {
-            var compiled = db.Compiler.Compile(queries);
+            SqlResult compiled = db.Compiler.Compile(queries);
 
             return await db.Connection.QueryMultipleAsync(
                 compiled.Sql,
@@ -138,17 +151,17 @@ namespace SqlKata.Execution
         )
         {
 
-            var multi = await db.GetMultipleAsync<T>(
+            SqlMapper.GridReader multi = await db.GetMultipleAsync<T>(
                 queries,
                 transaction,
                 commandType
             );
 
-            var list = new List<IEnumerable<T>>();
+            List<IEnumerable<T>> list = new List<IEnumerable<T>>();
 
             using (multi)
             {
-                for (var i = 0; i < queries.Count(); i++)
+                for (int i = 0; i < queries.Count(); i++)
                 {
                     list.Add(multi.Read<T>());
                 }
@@ -199,8 +212,14 @@ namespace SqlKata.Execution
         #endregion
 
         #region pagination
-        public static async Task<PaginationResult<T>> PaginateAsync<T>(this QueryFactory db, Query query, int page, int perPage = 25)
+        public static async Task<PaginationResult<T>> PaginateAsync<T>(this QueryFactory db, Query query, int page, CancellationToken cancellationToken, int perPage = 25)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelling per user request \n Now terminating PaginateAsync call...");
+                PaginationResult<T> result = new PaginationResult<T> { Query = query, Page = page, PerPage = perPage, Count = 0L, List = Enumerable.Empty<T>() };
+                return result;
+            }
 
             if (page < 1)
             {
@@ -212,7 +231,7 @@ namespace SqlKata.Execution
                 throw new ArgumentException("PerPage param should be greater than or equal to 1", nameof(perPage));
             }
 
-            var count = await query.Clone().CountAsync<long>();
+            long count = await query.Clone().CountAsync<long>();
 
             IEnumerable<T> list;
 
@@ -240,10 +259,10 @@ namespace SqlKata.Execution
             this QueryFactory db,
             Query query,
             int chunkSize,
-            Func<IEnumerable<T>, int, bool> func
-        )
+            Func<IEnumerable<T>, int, bool> func,
+            CancellationToken cancellationToken)
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            PaginationResult<T> result = await db.PaginateAsync<T>(query, 1, cancellationToken, chunkSize);
 
             if (!func(result.List, 1))
             {
@@ -266,10 +285,10 @@ namespace SqlKata.Execution
             Query query,
             int chunkSize,
             Action<IEnumerable<T>,
-            int> action
-        )
+            int> action,
+            CancellationToken cancellationToken)
         {
-            var result = await db.PaginateAsync<T>(query, 1, chunkSize);
+            PaginationResult<T> result = await db.PaginateAsync<T>(query, 1, cancellationToken, chunkSize);
 
             action(result.List, 1);
 
@@ -335,9 +354,9 @@ namespace SqlKata.Execution
             {
                 Dictionary<string, Dictionary<string, object>> related = await getEmbeddedForeignKeysAsync(include, foreignIds);
 
-                foreach (var item in dynamicResult)
+                foreach (Dictionary<string, object> item in dynamicResult)
                 {
-                    var foreignValue = item[include.ForeignKey].ToString();
+                    string foreignValue = item[include.ForeignKey].ToString();
                     item[include.Name] = related.ContainsKey(foreignValue) ? related[foreignValue] : null;
                 }
             }
@@ -354,9 +373,9 @@ namespace SqlKata.Execution
                 {
                     Dictionary<string, List<Dictionary<string, object>>> children = await getEmbeddedIncludesAsync(include, localIds);
 
-                    foreach (var item in dynamicResult)
+                    foreach (Dictionary<string, object> item in dynamicResult)
                     {
-                        var localValue = item[include.LocalKey].ToString();
+                        string localValue = item[include.LocalKey].ToString();
                         item[include.Name] = children.ContainsKey(localValue) ? children[localValue] : new List<Dictionary<string, object>>();
                     }
                 }

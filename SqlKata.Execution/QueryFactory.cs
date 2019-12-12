@@ -70,7 +70,7 @@ namespace SqlKata.Execution
         /// <returns></returns>
         internal SqlResult Compile(Query query)
         {
-            var compiled = this.Compiler.Compile(query);
+            SqlResult compiled = this.Compiler.Compile(query);
 
             this.Logger(compiled);
 

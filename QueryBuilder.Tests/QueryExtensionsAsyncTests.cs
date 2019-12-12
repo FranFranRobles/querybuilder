@@ -1,19 +1,23 @@
 ﻿using SqlKata.Tests.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace SqlKata.Tests
 {
     public class QueryExtensionsAsyncTests : TestSupport
     {
-
+        /**
+         * UPDATE: THERE IS NO WAY TO UNIT TEST ASYNC METHODS
+         */
         [Fact]
-        public void TestGetAsync()
+        public void ShouldPrintOutCanceledMessageWhenCancellationToeknTrue_GetAsync()
         {
-
-            Assert.True(true);
+            //var query = new Mock<Query>();
+            //var mockQuery = query.Object;
+            //var result = new Mock<IEnumerable<string>>();
+            //CancellationToken cancellationToken = default;
+            //var c = QueryExtensionsAsync.GetAsync<string>(mockQuery, cancellationToken);
+            //result.Verify(QueryExtensionsAsync.GetAsync<string>(mockQuery, cancellationToken), Times.AtMostOnce);
+            //Assert.True(c);
         }
     }
 }
